@@ -1,0 +1,1223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Split Bill Pro</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;0,9..40,800;1,9..40,400&family=DM+Mono:wght@400;500&display=swap');
+    :root{
+      --bg: #f6f8fc;
+      --bg-2: #eef3ff;
+      --card: rgba(255,255,255,.88);
+      --card-solid:#fff;
+      --text:#0f172a;
+      --muted:#64748b;
+      --line:#e5e7eb;
+      --primary:#2563eb;
+      --primary-2:#1d4ed8;
+      --success:#16a34a;
+      --danger:#dc2626;
+      --warning:#d97706;
+      --shadow: 0 16px 40px rgba(15,23,42,.08);
+      --radius: 20px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;font-family:'DM Sans',Inter,ui-sans-serif,system-ui,-apple-system,sans-serif;color:var(--text);background:
+      radial-gradient(circle at top left, #dbeafe 0%, transparent 35%),
+      radial-gradient(circle at top right, #e9d5ff 0%, transparent 28%),
+      linear-gradient(180deg, #f8fbff 0%, #f5f7fb 100%);
+      min-height:100%;}
+    .container{max-width:1200px;margin:0 auto;padding:24px 16px 48px}
+    .hero{display:flex;gap:16px;align-items:flex-start;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap}
+    .hero h1{font-size:clamp(24px,3.5vw,38px);margin:0 0 4px;line-height:1.1;font-weight:800}
+    .hero-subtitle{font-size:14px;font-weight:700;color:var(--primary);margin:0 0 6px;letter-spacing:.01em}
+    .hero p{margin:0;color:var(--muted);max-width:640px;font-size:14px;line-height:1.6}
+    .top-actions{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .layout{display:grid;grid-template-columns: 1.1fr .9fr;gap:18px}
+    .left,.right{display:flex;flex-direction:column;gap:18px}
+    .card{
+      background:var(--card);
+      backdrop-filter: blur(16px);
+      border:1px solid rgba(255,255,255,.9);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      overflow:hidden;
+    }
+    .card-header{padding:18px 20px 0}
+    .card-body{padding:18px 20px 20px}
+    .card h2,.card h3{margin:0}
+    .section-title{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:4px}
+    .eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:12px;font-weight:700;color:var(--primary);text-transform:uppercase;letter-spacing:.08em}
+    .muted{color:var(--muted)}
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+    .grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+    .stack{display:flex;flex-direction:column;gap:12px}
+    .input-group{display:flex;flex-direction:column;gap:6px}
+    label{font-size:13px;font-weight:600;color:#334155}
+    input,select,textarea{
+      width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);
+      background:#fff;font-size:14px;color:var(--text);outline:none;transition:.18s ease;
+      font-family:inherit;
+    }
+    input:focus,select:focus,textarea:focus{border-color:#93c5fd;box-shadow:0 0 0 4px rgba(37,99,235,.12)}
+    textarea{resize:vertical;min-height:70px}
+    button{
+      border:none;background:var(--primary);color:#fff;padding:12px 16px;border-radius:14px;
+      font-weight:700;cursor:pointer;transition:.18s ease;box-shadow:0 10px 18px rgba(37,99,235,.18);
+      font-family:inherit;font-size:14px;
+    }
+    button:hover{transform:translateY(-1px);background:var(--primary-2)}
+    button.secondary{background:#fff;color:var(--text);border:1px solid var(--line);box-shadow:none}
+    button.secondary:hover{background:#f8fafc}
+    button.ghost{background:transparent;color:var(--primary);border:1px solid rgba(37,99,235,.18);box-shadow:none}
+    button.danger{background:#fff1f2;color:var(--danger);border:1px solid #fecdd3;box-shadow:none}
+    button.success-btn{background:#ecfdf5;color:var(--success);border:1px solid #bbf7d0;box-shadow:none}
+    button.sm{padding:7px 12px;font-size:12px;border-radius:10px}
+    .pill-row{display:flex;flex-wrap:wrap;gap:10px}
+    .person-pill{display:inline-flex;align-items:center;gap:10px;padding:10px 14px;border-radius:999px;background:#fff;border:1px solid var(--line);font-weight:700;transition:.15s ease}
+    .person-pill:hover{border-color:#bfdbfe}
+    .person-pill small{display:block;color:var(--muted);font-weight:600;font-size:11px}
+    .person-pill .x{background:none;border:none;color:var(--muted);padding:0;box-shadow:none;font-size:16px;line-height:1;transform:none}
+    .person-pill .x:hover{color:var(--danger);transform:none}
+    /* Balance chips */
+    .balance-chip{display:inline-flex;align-items:center;gap:5px;padding:3px 9px;border-radius:999px;font-size:11px;font-weight:700;white-space:nowrap}
+    .balance-chip.positive{background:#ecfdf5;color:var(--success);border:1px solid #bbf7d0}
+    .balance-chip.negative{background:#fef2f2;color:var(--danger);border:1px solid #fecdd3}
+    .balance-chip.neutral{background:#eff6ff;color:var(--primary);border:1px solid #bfdbfe}
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+    .stat{background:linear-gradient(180deg,#fff,#f8fbff);border:1px solid #e7eef9;border-radius:18px;padding:14px}
+    .stat .k{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+    .stat .v{font-size:26px;font-weight:800;margin-top:8px;font-family:'DM Mono',monospace}
+    .badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-size:12px;font-weight:800}
+    .badge.green{background:#ecfdf5;color:var(--success)}
+    .badge.red{background:#fef2f2;color:var(--danger)}
+    .badge.blue{background:#eff6ff;color:var(--primary)}
+    .expense-list,.settlement-list,.balance-list{display:flex;flex-direction:column;gap:12px}
+    .expense-card{background:var(--card-solid);border:1px solid var(--line);border-radius:18px;padding:14px;transition:.18s ease}
+    .expense-card:hover{border-color:#bfdbfe;box-shadow:0 4px 16px rgba(37,99,235,.07)}
+    .expense-top{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
+    .expense-title{font-size:16px;font-weight:800;margin:0 0 4px}
+    .expense-meta{font-size:13px;color:var(--muted);display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .expense-bottom{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-top:12px;flex-wrap:wrap}
+    .expense-actions{display:flex;gap:8px;flex-shrink:0}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{padding:5px 10px;border-radius:999px;background:#f8fafc;border:1px solid #e2e8f0;font-size:12px;font-weight:700}
+    .chip.cat{background:#eff6ff;border-color:#bfdbfe;color:var(--primary)}
+    /* Inline edit form */
+    .inline-edit-form{background:#f8fafc;border:1px solid #bfdbfe;border-radius:14px;padding:14px;margin-top:10px;display:none}
+    .inline-edit-form.open{display:block}
+    .settlement-card{border-radius:18px;background:#fff;border:1px solid var(--line);overflow:hidden;transition:.18s ease}
+    .settlement-card:hover{border-color:#bfdbfe}
+    .settlement-main-row{display:flex;justify-content:space-between;align-items:center;gap:14px;padding:14px 16px;flex-wrap:wrap}
+    .settlement-main{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+    .settlement-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+    .settlement-why{font-size:12px;color:var(--muted);padding:10px 16px;border-top:1px solid var(--line);background:#fafbfd;display:none}
+    .settlement-why.open{display:block}
+    .settlement-card.paid-off{opacity:.65}
+    .settlement-card.paid-off .settlement-main-row{text-decoration:line-through;color:var(--muted)}
+    .paid-badge{display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:999px;font-size:11px;font-weight:700;background:#ecfdf5;color:var(--success);border:1px solid #bbf7d0}
+    .money{font-weight:900;font-size:22px;font-family:'DM Mono',monospace}
+    .big-result{padding:18px;border-radius:22px;background:linear-gradient(135deg,#eff6ff 0%,#ffffff 100%);border:1px solid #dbeafe}
+    .big-result h3{font-size:22px;margin-bottom:6px;font-weight:800}
+    .big-result p{margin:0;color:var(--muted);line-height:1.6;font-size:14px}
+    .balance-item{display:flex;justify-content:space-between;align-items:center;gap:10px;background:#fff;border:1px solid var(--line);padding:14px 16px;border-radius:16px}
+    .balance-left{display:flex;flex-direction:column;gap:4px}
+    .name{font-weight:800}
+    .sub{font-size:12px;color:var(--muted)}
+    .person-summary{font-size:12px;color:var(--muted);font-style:italic;margin-top:2px}
+    details{border-top:1px solid #e2e8f0}
+    details:first-of-type{border-top:none}
+    summary{list-style:none;cursor:pointer;padding:16px 0;font-weight:800;display:flex;justify-content:space-between;align-items:center;gap:10px}
+    summary::-webkit-details-marker{display:none}
+    .hint{font-size:13px;color:var(--muted);line-height:1.6}
+    .checkbox-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+    .check{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:14px;background:#fff}
+    .check input{width:auto;margin:0}
+    .share-row{display:grid;grid-template-columns:1fr 120px;gap:10px;align-items:center}
+    .toolbar{display:flex;gap:10px;flex-wrap:wrap}
+    .footer-note{font-size:13px;color:var(--muted);text-align:center;margin-top:12px}
+    .empty{padding:20px 16px;border:1px dashed #cbd5e1;border-radius:16px;background:#fff;color:var(--muted);text-align:center;line-height:1.6}
+    .empty strong{display:block;color:#334155;margin-bottom:4px;font-size:14px}
+    /* Currency selector */
+    .currency-bar{display:flex;align-items:center;gap:10px;padding:10px 16px;background:#fff;border:1px solid var(--line);border-radius:14px;margin-bottom:18px;flex-wrap:wrap}
+    .currency-bar label{font-size:13px;font-weight:700;color:#334155;white-space:nowrap}
+    .currency-select{width:auto;padding:8px 12px;font-size:13px;border-radius:10px}
+    /* Search + filter bar */
+    .filter-bar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    .filter-bar input,.filter-bar select{flex:1;min-width:120px;padding:9px 12px;font-size:13px;border-radius:10px}
+    /* Quick templates */
+    .templates-row{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:4px}
+    .template-btn{padding:7px 14px;font-size:12px;border-radius:999px;background:#eff6ff;color:var(--primary);border:1px solid #bfdbfe;box-shadow:none;font-weight:700;transition:.15s ease}
+    .template-btn:hover{background:#dbeafe;transform:translateY(-1px)}
+    /* Toast */
+    #toast-container{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:10px;z-index:9999;pointer-events:none}
+    .toast{background:#0f172a;color:#fff;padding:12px 20px;border-radius:14px;font-size:14px;font-weight:600;box-shadow:0 8px 28px rgba(15,23,42,.22);opacity:0;transform:translateY(16px);transition:.28s cubic-bezier(.4,0,.2,1);white-space:nowrap}
+    .toast.show{opacity:1;transform:translateY(0)}
+    .toast.toast-success{background:#166534;border:1px solid #22c55e22}
+    .toast.toast-info{background:#1e3a8a}
+    /* Category pill */
+    .cat-icon{margin-right:3px}
+    /* Settlement copy area */
+    .settlement-header-row{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin-bottom:14px}
+    /* Summary line per person */
+    .person-summary-line{font-size:12px;margin-top:2px;font-style:italic}
+    .person-summary-line.gets{color:var(--success)}
+    .person-summary-line.owes{color:var(--danger)}
+    .person-summary-line.settled{color:var(--muted)}
+    @media (max-width: 980px){
+      .layout{grid-template-columns:1fr}
+      .right{order:-1}
+    }
+    @media (max-width: 680px){
+      .stats,.grid-2,.grid-3,.grid-4,.checkbox-grid{grid-template-columns:1fr}
+      .container{padding:16px 12px 32px}
+      .card-body,.card-header{padding-left:16px;padding-right:16px}
+      .settlement-card,.balance-item,.expense-bottom,.expense-top{align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <div id="toast-container"></div>
+  <div class="container">
+    <section class="hero">
+      <div>
+        <div class="eyebrow">Split Bill Pro</div>
+        <h1>Split billing for multiple payments, without the headache.</h1>
+        <div class="hero-subtitle">Track who paid each expense, then settle fairly</div>
+        <p>Perfect for trips, dinners, taxis, groceries, and shared purchases where different people pay at different times.</p>
+      </div>
+      <div class="top-actions">
+        <button class="secondary" id="sampleBtn">Load sample</button>
+        <button class="secondary" id="exportBtn">Export JSON</button>
+        <button class="secondary" id="importBtn">Import JSON</button>
+        <button class="secondary" id="resetBtn">Reset</button>
+      </div>
+    </section>
+
+    <!-- Currency bar -->
+    <div class="currency-bar">
+      <label for="currencySelect">💱 Currency:</label>
+      <select id="currencySelect" class="currency-select">
+        <option value="TWD">TWD (NT$)</option>
+        <option value="USD">USD ($)</option>
+        <option value="IDR">IDR (Rp)</option>
+        <option value="EUR">EUR (€)</option>
+      </select>
+      <span id="currencyNote" class="hint" style="margin:0">Display only — no conversion</span>
+    </div>
+
+    <div class="layout">
+      <main class="left">
+        <!-- People -->
+        <section class="card">
+          <div class="card-header">
+            <div class="section-title">
+              <div>
+                <div class="eyebrow">Step 1</div>
+                <h2>Group</h2>
+              </div>
+              <span class="badge blue" id="peopleCountBadge">0 people</span>
+            </div>
+          </div>
+          <div class="card-body stack">
+            <div class="grid-2">
+              <div class="input-group">
+                <label for="personName">Name</label>
+                <input id="personName" placeholder="e.g. Alice" />
+              </div>
+              <div class="input-group" style="justify-content:flex-end">
+                <label>&nbsp;</label>
+                <button id="addPersonBtn">Add person</button>
+              </div>
+            </div>
+            <div id="peopleList" class="pill-row"></div>
+            <div id="peopleEmpty" class="empty"><strong>No one here yet</strong>Add at least 2 people to start splitting bills.</div>
+          </div>
+        </section>
+
+        <!-- Add Expense -->
+        <section class="card">
+          <div class="card-header">
+            <div class="section-title">
+              <div>
+                <div class="eyebrow">Step 2</div>
+                <h2>Add an expense</h2>
+              </div>
+              <span class="badge blue">Quick by default</span>
+            </div>
+          </div>
+          <div class="card-body stack">
+            <!-- Quick templates -->
+            <div>
+              <div class="hint" style="margin-bottom:8px">Quick templates:</div>
+              <div class="templates-row">
+                <button class="template-btn" data-template="dinner">🍽️ Dinner</button>
+                <button class="template-btn" data-template="taxi">🚕 Taxi</button>
+                <button class="template-btn" data-template="groceries">🛒 Groceries</button>
+                <button class="template-btn" data-template="trip">✈️ Trip</button>
+              </div>
+            </div>
+
+            <div class="grid-3">
+              <div class="input-group">
+                <label for="expenseTitle">Expense name</label>
+                <input id="expenseTitle" placeholder="e.g. Dinner, Taxi, Drinks" />
+              </div>
+              <div class="input-group">
+                <label for="expenseAmount">Amount</label>
+                <input id="expenseAmount" type="number" step="0.01" min="0" placeholder="0.00" />
+              </div>
+              <div class="input-group">
+                <label for="expensePaidBy">Paid by</label>
+                <select id="expensePaidBy"></select>
+              </div>
+            </div>
+
+            <div class="grid-2">
+              <div class="input-group">
+                <label for="expenseCategory">Category</label>
+                <select id="expenseCategory">
+                  <option value="other">🗂️ Other</option>
+                  <option value="food">🍽️ Food</option>
+                  <option value="transport">🚕 Transport</option>
+                  <option value="groceries">🛒 Groceries</option>
+                  <option value="shopping">🛍️ Shopping</option>
+                  <option value="accommodation">🏨 Accommodation</option>
+                  <option value="entertainment">🎉 Entertainment</option>
+                </select>
+              </div>
+              <div class="input-group">
+                <label for="expenseDate">Date &amp; time <span class="muted">(optional)</span></label>
+                <input id="expenseDate" type="datetime-local" />
+              </div>
+            </div>
+
+            <div class="input-group">
+              <label for="expenseNote">Note <span class="muted">(optional)</span></label>
+              <input id="expenseNote" placeholder="e.g. at Blue Elephant restaurant" />
+            </div>
+
+            <div class="input-group">
+              <label>Split among</label>
+              <div id="participantsBox" class="checkbox-grid"></div>
+            </div>
+
+            <details>
+              <summary>
+                <span>Advanced split options</span>
+                <span class="muted">Equal / Custom amount / Percentage</span>
+              </summary>
+              <div class="stack" style="padding-bottom:12px">
+                <div class="grid-2">
+                  <div class="input-group">
+                    <label for="splitMode">Split mode</label>
+                    <select id="splitMode">
+                      <option value="equal">Equal split</option>
+                      <option value="custom">Custom amount</option>
+                      <option value="percent">Percentage</option>
+                    </select>
+                  </div>
+                  <div class="input-group">
+                    <label for="roundingRule">Rounding</label>
+                    <select id="roundingRule">
+                      <option value="nearest">Nearest</option>
+                      <option value="up">Round up</option>
+                      <option value="down">Round down</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="sharesEditor" class="stack"></div>
+                <div class="hint">Use custom or percentage only when the split is not equal. Otherwise, keep it simple.</div>
+              </div>
+            </details>
+
+            <div class="toolbar">
+              <button id="addExpenseBtn">Add expense</button>
+              <button class="secondary" id="clearExpenseFormBtn">Clear form</button>
+            </div>
+          </div>
+        </section>
+
+        <!-- Expense list -->
+        <section class="card">
+          <div class="card-header">
+            <div class="section-title">
+              <div>
+                <div class="eyebrow">Step 3</div>
+                <h2>Expenses recorded</h2>
+              </div>
+              <span class="badge blue" id="expenseCountBadge">0 expenses</span>
+            </div>
+          </div>
+          <div class="card-body">
+            <div class="filter-bar">
+              <input id="searchInput" placeholder="🔍 Search expenses…" />
+              <select id="filterCategory">
+                <option value="">All categories</option>
+                <option value="food">🍽️ Food</option>
+                <option value="transport">🚕 Transport</option>
+                <option value="groceries">🛒 Groceries</option>
+                <option value="shopping">🛍️ Shopping</option>
+                <option value="accommodation">🏨 Accommodation</option>
+                <option value="entertainment">🎉 Entertainment</option>
+                <option value="other">🗂️ Other</option>
+              </select>
+              <select id="filterPayer">
+                <option value="">All payers</option>
+              </select>
+            </div>
+            <div id="expenseList" class="expense-list"></div>
+            <div id="expenseEmpty" class="empty"><strong>No expenses yet</strong>Add your first shared payment above.</div>
+          </div>
+        </section>
+      </main>
+
+      <aside class="right">
+        <!-- Final settlement (top priority) -->
+        <section class="card">
+          <div class="card-header">
+            <div class="section-title">
+              <div>
+                <div class="eyebrow">Final settlement</div>
+                <h2>Who pays whom?</h2>
+              </div>
+            </div>
+          </div>
+          <div class="card-body stack">
+            <div class="big-result">
+              <div class="eyebrow">Minimum transactions</div>
+              <h3>Settle up now</h3>
+              <p>The app minimizes transactions so the group can settle up faster.</p>
+            </div>
+            <div class="settlement-header-row">
+              <span class="hint" style="margin:0">Mark each payment as done when settled.</span>
+              <button class="secondary sm" id="copySettlementBtn">📋 Copy</button>
+            </div>
+            <div id="settlementList" class="settlement-list"></div>
+            <div id="settlementEmpty" class="empty"><strong>Nothing to settle</strong>Add expenses and people to see who owes what.</div>
+          </div>
+        </section>
+
+        <!-- Stats -->
+        <section class="card">
+          <div class="card-body stack">
+            <div class="stats">
+              <div class="stat">
+                <div class="k">Total paid</div>
+                <div class="v" id="statTotal">0.00</div>
+              </div>
+              <div class="stat">
+                <div class="k">People</div>
+                <div class="v" id="statPeople">0</div>
+              </div>
+              <div class="stat">
+                <div class="k">Expenses</div>
+                <div class="v" id="statExpenses">0</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Balances -->
+        <section class="card">
+          <div class="card-header">
+            <div class="section-title">
+              <div>
+                <div class="eyebrow">Balances</div>
+                <h2>Net position per person</h2>
+              </div>
+            </div>
+          </div>
+          <div class="card-body">
+            <div id="balanceList" class="balance-list"></div>
+            <div id="balanceEmpty" class="empty" style="display:none"><strong>No data yet</strong>Add people and expenses first.</div>
+          </div>
+        </section>
+      </aside>
+    </div>
+
+    <div class="footer-note">Data is saved locally in your browser · Split Bill Pro</div>
+  </div>
+
+  <input type="file" id="importFile" accept="application/json" hidden />
+
+  <script>
+    (() => {
+      const STORAGE_KEY = 'splitBillPro_v1';
+
+      // ─── State ─────────────────────────────────────────────────────────────
+      let state = { people: [], expenses: [] };
+      let currency = { code: 'TWD', symbol: 'NT$' };
+
+      const CURRENCIES = {
+        TWD: 'NT$',
+        USD: '$',
+        IDR: 'Rp',
+        EUR: '€'
+      };
+
+      const CATEGORY_META = {
+        food:          { label: 'Food',          icon: '🍽️' },
+        transport:     { label: 'Transport',      icon: '🚕' },
+        groceries:     { label: 'Groceries',      icon: '🛒' },
+        shopping:      { label: 'Shopping',       icon: '🛍️' },
+        accommodation: { label: 'Accommodation',  icon: '🏨' },
+        entertainment: { label: 'Entertainment',  icon: '🎉' },
+        other:         { label: 'Other',          icon: '🗂️' }
+      };
+
+      const TEMPLATES = {
+        dinner:     { title: 'Dinner',     category: 'food'      },
+        taxi:       { title: 'Taxi',       category: 'transport' },
+        groceries:  { title: 'Groceries',  category: 'groceries' },
+        trip:       { title: 'Trip',       category: 'accommodation' }
+      };
+
+      // ─── Element refs ───────────────────────────────────────────────────────
+      const els = {
+        personName: document.getElementById('personName'),
+        addPersonBtn: document.getElementById('addPersonBtn'),
+        peopleList: document.getElementById('peopleList'),
+        peopleEmpty: document.getElementById('peopleEmpty'),
+        peopleCountBadge: document.getElementById('peopleCountBadge'),
+        expenseTitle: document.getElementById('expenseTitle'),
+        expenseAmount: document.getElementById('expenseAmount'),
+        expensePaidBy: document.getElementById('expensePaidBy'),
+        expenseCategory: document.getElementById('expenseCategory'),
+        expenseDate: document.getElementById('expenseDate'),
+        expenseNote: document.getElementById('expenseNote'),
+        participantsBox: document.getElementById('participantsBox'),
+        splitMode: document.getElementById('splitMode'),
+        roundingRule: document.getElementById('roundingRule'),
+        sharesEditor: document.getElementById('sharesEditor'),
+        addExpenseBtn: document.getElementById('addExpenseBtn'),
+        clearExpenseFormBtn: document.getElementById('clearExpenseFormBtn'),
+        expenseList: document.getElementById('expenseList'),
+        expenseEmpty: document.getElementById('expenseEmpty'),
+        expenseCountBadge: document.getElementById('expenseCountBadge'),
+        settlementList: document.getElementById('settlementList'),
+        settlementEmpty: document.getElementById('settlementEmpty'),
+        balanceList: document.getElementById('balanceList'),
+        balanceEmpty: document.getElementById('balanceEmpty'),
+        statTotal: document.getElementById('statTotal'),
+        statPeople: document.getElementById('statPeople'),
+        statExpenses: document.getElementById('statExpenses'),
+        sampleBtn: document.getElementById('sampleBtn'),
+        exportBtn: document.getElementById('exportBtn'),
+        importBtn: document.getElementById('importBtn'),
+        resetBtn: document.getElementById('resetBtn'),
+        importFile: document.getElementById('importFile'),
+        currencySelect: document.getElementById('currencySelect'),
+        copySettlementBtn: document.getElementById('copySettlementBtn'),
+        searchInput: document.getElementById('searchInput'),
+        filterCategory: document.getElementById('filterCategory'),
+        filterPayer: document.getElementById('filterPayer')
+      };
+
+      // ─── Toast ──────────────────────────────────────────────────────────────
+      function showToast(msg, type = 'success') {
+        const container = document.getElementById('toast-container');
+        const t = document.createElement('div');
+        t.className = `toast toast-${type}`;
+        t.textContent = msg;
+        container.appendChild(t);
+        requestAnimationFrame(() => {
+          requestAnimationFrame(() => t.classList.add('show'));
+        });
+        setTimeout(() => {
+          t.classList.remove('show');
+          setTimeout(() => t.remove(), 400);
+        }, 2800);
+      }
+
+      // ─── Utility ────────────────────────────────────────────────────────────
+      function uid(prefix='id') { return prefix + '_' + Math.random().toString(36).slice(2, 10); }
+      function money(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+      function fmt(v) {
+        const sym = currency.symbol;
+        const num = money(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        return `${sym}${num}`;
+      }
+      function fmtNum(v) {
+        return money(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      }
+      function roundWithRule(v, rule) {
+        if (rule === 'up') return Math.ceil(v * 100) / 100;
+        if (rule === 'down') return Math.floor(v * 100) / 100;
+        return Math.round(v * 100) / 100;
+      }
+      function escapeHtml(str) {
+        return String(str ?? '')
+          .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
+      }
+      function personName(id) { return state.people.find(p => p.id === id)?.name || 'Unknown'; }
+
+      // ─── Persistence ────────────────────────────────────────────────────────
+      function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); }
+      function load() {
+        try {
+          const raw = localStorage.getItem(STORAGE_KEY);
+          if (raw) {
+            const parsed = JSON.parse(raw);
+            if (parsed && Array.isArray(parsed.people) && Array.isArray(parsed.expenses)) {
+              state = parsed;
+              return;
+            }
+          }
+        } catch (_) {}
+        loadSample(false);
+      }
+
+      function loadSample(shouldSave = true) {
+        const a = uid('p'), b = uid('p'), c = uid('p'), d = uid('p');
+        state = {
+          people: [
+            { id: a, name: 'Alice' },
+            { id: b, name: 'Bob' },
+            { id: c, name: 'Charlie' },
+            { id: d, name: 'Kenn' }
+          ],
+          expenses: [
+            { id: uid('e'), title: 'Dinner', amount: 960, paidBy: a, participantIds: [a,b,c,d], mode: 'equal', shares: {}, rounding: 'nearest', category: 'food', note: 'At Blue Elephant', date: '' },
+            { id: uid('e'), title: 'Taxi', amount: 330, paidBy: d, participantIds: [b,c,d], mode: 'percent', shares: { [b]: 40, [c]: 40, [d]: 20 }, rounding: 'nearest', category: 'transport', note: '', date: '' },
+            { id: uid('e'), title: 'Drinks', amount: 180, paidBy: b, participantIds: [a,b,c], mode: 'custom', shares: { [a]: 50, [b]: 70, [c]: 60 }, rounding: 'nearest', category: 'entertainment', note: '', date: '' }
+          ]
+        };
+        if (shouldSave) save();
+        render();
+      }
+
+      // ─── Form helpers ────────────────────────────────────────────────────────
+      function clearExpenseForm() {
+        els.expenseTitle.value = '';
+        els.expenseAmount.value = '';
+        els.expenseNote.value = '';
+        els.expenseDate.value = '';
+        els.expenseCategory.value = 'other';
+        els.splitMode.value = 'equal';
+        els.roundingRule.value = 'nearest';
+        renderParticipantsAndPayer();
+        renderSharesEditor();
+      }
+
+      function addPerson() {
+        const name = els.personName.value.trim();
+        if (!name) { showToast('Please enter a name.', 'info'); return; }
+        const exists = state.people.some(p => p.name.toLowerCase() === name.toLowerCase());
+        if (exists) { showToast(`${name} is already in the group.`, 'info'); return; }
+        state.people.push({ id: uid('p'), name });
+        els.personName.value = '';
+        save(); render();
+        showToast(`${name} added to the group ✓`);
+      }
+
+      function removePerson(id) {
+        const person = state.people.find(p => p.id === id);
+        if (!person) return;
+        const used = state.expenses.some(e => e.paidBy === id || e.participantIds.includes(id));
+        if (used) { showToast('Remove this person from expenses first.', 'info'); return; }
+        state.people = state.people.filter(p => p.id !== id);
+        save(); render();
+        showToast(`${person.name} removed.`);
+      }
+
+      function getSelectedParticipantIds() {
+        return Array.from(els.participantsBox.querySelectorAll('input[type="checkbox"]:checked')).map(i => i.value);
+      }
+
+      function buildShareInputs(mode, participantIds) {
+        const people = participantIds.map(id => state.people.find(p => p.id === id)).filter(Boolean);
+        if (!people.length || mode === 'equal') return '';
+        const suffix = mode === 'percent' ? '%' : '';
+        const placeholder = mode === 'percent' ? '0-100' : '0.00';
+        return people.map(person => `
+          <div class="share-row">
+            <div class="name">${escapeHtml(person.name)}</div>
+            <input type="number" step="0.01" min="0" data-share-person="${person.id}" placeholder="${placeholder}" />
+          </div>
+        `).join('');
+      }
+
+      function renderParticipantsAndPayer() {
+        const people = state.people;
+        els.expensePaidBy.innerHTML = people.length
+          ? people.map(p => `<option value="${p.id}">${escapeHtml(p.name)}</option>`).join('')
+          : `<option value="">No people yet</option>`;
+        els.participantsBox.innerHTML = people.map((p) => `
+          <label class="check">
+            <input type="checkbox" value="${p.id}" checked />
+            <span>${escapeHtml(p.name)}</span>
+          </label>
+        `).join('');
+        // update filter payer
+        const cur = els.filterPayer.value;
+        els.filterPayer.innerHTML = `<option value="">All payers</option>` +
+          people.map(p => `<option value="${p.id}"${p.id===cur?' selected':''}>${escapeHtml(p.name)}</option>`).join('');
+      }
+
+      function renderSharesEditor() {
+        const mode = els.splitMode.value;
+        const selected = getSelectedParticipantIds();
+        if (mode === 'equal') {
+          els.sharesEditor.innerHTML = `<div class="hint">Equal split means the app automatically divides the amount among selected participants.</div>`;
+          return;
+        }
+        if (!selected.length) {
+          els.sharesEditor.innerHTML = `<div class="hint">Select participants first.</div>`;
+          return;
+        }
+        const header = mode === 'percent'
+          ? `<div class="hint">Enter each person's percentage. Total should usually be 100%.</div>`
+          : `<div class="hint">Enter the relative amount weight for each person. The app will scale it to the total expense.</div>`;
+        els.sharesEditor.innerHTML = header + buildShareInputs(mode, selected);
+      }
+
+      function readSharesFromForm(participantIds, mode) {
+        const shares = {};
+        if (mode === 'equal') return shares;
+        participantIds.forEach(id => {
+          const input = els.sharesEditor.querySelector(`[data-share-person="${id}"]`);
+          shares[id] = input ? money(input.value) : 0;
+        });
+        return shares;
+      }
+
+      function addExpense() {
+        if (state.people.length < 2) { showToast('Add at least 2 people first.', 'info'); return; }
+        const title = els.expenseTitle.value.trim() || 'Untitled expense';
+        const amount = money(els.expenseAmount.value);
+        const paidBy = els.expensePaidBy.value;
+        const participantIds = getSelectedParticipantIds();
+        const mode = els.splitMode.value;
+        const rounding = els.roundingRule.value;
+        const category = els.expenseCategory.value || 'other';
+        const note = els.expenseNote.value.trim();
+        const date = els.expenseDate.value;
+
+        if (amount <= 0) { showToast('Amount must be more than 0.', 'info'); return; }
+        if (!paidBy) { showToast('Please select who paid.', 'info'); return; }
+        if (!participantIds.length) { showToast('Please select at least one person.', 'info'); return; }
+
+        const shares = readSharesFromForm(participantIds, mode);
+        if (mode !== 'equal') {
+          const totalShares = participantIds.reduce((sum, id) => sum + money(shares[id]), 0);
+          if (totalShares <= 0) { showToast('Enter share values above 0.', 'info'); return; }
+        }
+
+        state.expenses.unshift({ id: uid('e'), title, amount, paidBy, participantIds, mode, shares, rounding, category, note, date });
+        save();
+        clearExpenseForm();
+        render();
+        showToast(`"${title}" added ✓`);
+      }
+
+      function removeExpense(id) {
+        const exp = state.expenses.find(e => e.id === id);
+        state.expenses = state.expenses.filter(e => e.id !== id);
+        save(); render();
+        if (exp) showToast(`"${exp.title}" removed.`);
+      }
+
+      // ─── Inline edit ──────────────────────────────────────────────────────────
+      function saveInlineEdit(id) {
+        const exp = state.expenses.find(e => e.id === id);
+        if (!exp) return;
+        const form = document.getElementById(`edit-form-${id}`);
+        if (!form) return;
+
+        const newTitle = form.querySelector('[data-edit="title"]').value.trim() || 'Untitled';
+        const newAmount = money(form.querySelector('[data-edit="amount"]').value);
+        const newPaidBy = form.querySelector('[data-edit="paidBy"]').value;
+        const newCategory = form.querySelector('[data-edit="category"]').value;
+        const newNote = form.querySelector('[data-edit="note"]').value.trim();
+        const newDate = form.querySelector('[data-edit="date"]').value;
+        const newParticipantIds = Array.from(form.querySelectorAll('[data-edit-participant]:checked')).map(i => i.value);
+        const newMode = form.querySelector('[data-edit="splitMode"]').value;
+        const newRounding = form.querySelector('[data-edit="rounding"]').value;
+
+        if (newAmount <= 0) { showToast('Amount must be more than 0.', 'info'); return; }
+        if (!newParticipantIds.length) { showToast('Select at least one participant.', 'info'); return; }
+
+        const newShares = {};
+        if (newMode !== 'equal') {
+          newParticipantIds.forEach(pid => {
+            const inp = form.querySelector(`[data-edit-share="${pid}"]`);
+            newShares[pid] = inp ? money(inp.value) : 0;
+          });
+          const totalShares = newParticipantIds.reduce((s, pid) => s + money(newShares[pid]), 0);
+          if (totalShares <= 0) { showToast('Enter share values above 0.', 'info'); return; }
+        }
+
+        exp.title = newTitle;
+        exp.amount = newAmount;
+        exp.paidBy = newPaidBy;
+        exp.category = newCategory;
+        exp.note = newNote;
+        exp.date = newDate;
+        exp.participantIds = newParticipantIds;
+        exp.mode = newMode;
+        exp.rounding = newRounding;
+        exp.shares = newShares;
+
+        save(); render();
+        showToast(`"${newTitle}" updated ✓`);
+      }
+
+      // ─── Calculation ─────────────────────────────────────────────────────────
+      function calculateSharesForExpense(expense) {
+        const participants = expense.participantIds.slice();
+        const amount = money(expense.amount);
+        const rule = expense.rounding || 'nearest';
+        const result = {};
+        participants.forEach(id => result[id] = 0);
+        if (!participants.length) return result;
+
+        if (expense.mode === 'equal') {
+          const base = roundWithRule(amount / participants.length, rule);
+          participants.forEach((id, idx) => {
+            result[id] = idx === participants.length - 1
+              ? roundWithRule(amount - base * (participants.length - 1), rule) : base;
+          });
+          return result;
+        }
+
+        const rawTotal = participants.reduce((sum, id) => sum + money(expense.shares[id]), 0);
+        if (rawTotal <= 0) {
+          const fallback = roundWithRule(amount / participants.length, rule);
+          participants.forEach((id, idx) => {
+            result[id] = idx === participants.length - 1
+              ? roundWithRule(amount - fallback * (participants.length - 1), rule) : fallback;
+          });
+          return result;
+        }
+
+        participants.forEach((id, idx) => {
+          const raw = (money(expense.shares[id]) / rawTotal) * amount;
+          result[id] = idx === participants.length - 1 ? 0 : roundWithRule(raw, rule);
+        });
+        const sumBeforeLast = participants.slice(0, -1).reduce((sum, id) => sum + money(result[id]), 0);
+        result[participants[participants.length - 1]] = roundWithRule(amount - sumBeforeLast, rule);
+        return result;
+      }
+
+      function compute() {
+        const paid = {}; const owed = {};
+        state.people.forEach(p => { paid[p.id] = 0; owed[p.id] = 0; });
+
+        const expenseBreakdown = state.expenses.map(expense => {
+          const shares = calculateSharesForExpense(expense);
+          paid[expense.paidBy] = money(paid[expense.paidBy]) + money(expense.amount);
+          Object.entries(shares).forEach(([id, share]) => { owed[id] = money(owed[id]) + money(share); });
+          return { ...expense, computedShares: shares };
+        });
+
+        const balances = {};
+        state.people.forEach(p => {
+          balances[p.id] = roundWithRule(money(paid[p.id]) - money(owed[p.id]), 'nearest');
+        });
+
+        const settlements = settle(balances);
+        const total = state.expenses.reduce((sum, e) => sum + money(e.amount), 0);
+        return { paid, owed, balances, settlements, total, expenseBreakdown };
+      }
+
+      function settle(balances) {
+        const creditors = [], debtors = [];
+        Object.entries(balances).forEach(([id, balance]) => {
+          const rounded = roundWithRule(balance, 'nearest');
+          if (rounded > 0.009) creditors.push({ id, amount: rounded });
+          if (rounded < -0.009) debtors.push({ id, amount: Math.abs(rounded) });
+        });
+        creditors.sort((a, b) => b.amount - a.amount);
+        debtors.sort((a, b) => b.amount - a.amount);
+
+        const tx = [];
+        let i = 0, j = 0;
+        while (i < debtors.length && j < creditors.length) {
+          const send = Math.min(debtors[i].amount, creditors[j].amount);
+          const amount = roundWithRule(send, 'nearest');
+          if (amount <= 0) break;
+          tx.push({ from: debtors[i].id, to: creditors[j].id, amount });
+          debtors[i].amount = roundWithRule(debtors[i].amount - amount, 'nearest');
+          creditors[j].amount = roundWithRule(creditors[j].amount - amount, 'nearest');
+          if (debtors[i].amount <= 0.009) i++;
+          if (creditors[j].amount <= 0.009) j++;
+        }
+        return tx;
+      }
+
+      // ─── Render: People ──────────────────────────────────────────────────────
+      function renderPeople() {
+        const calc = compute();
+        els.peopleList.innerHTML = state.people.map(person => {
+          const balance = money(calc.balances[person.id]);
+          let chip = '';
+          if (balance > 0.009) chip = `<span class="balance-chip positive">+${fmt(balance)}</span>`;
+          else if (balance < -0.009) chip = `<span class="balance-chip negative">−${fmt(Math.abs(balance))}</span>`;
+          else if (state.expenses.length > 0) chip = `<span class="balance-chip neutral">settled</span>`;
+          return `
+            <div class="person-pill">
+              <div>
+                ${escapeHtml(person.name)}
+                ${chip}
+              </div>
+              <button class="x" data-remove-person="${person.id}" title="Remove">×</button>
+            </div>
+          `;
+        }).join('');
+        els.peopleEmpty.style.display = state.people.length ? 'none' : 'block';
+        els.peopleCountBadge.textContent = `${state.people.length} ${state.people.length === 1 ? 'person' : 'people'}`;
+      }
+
+      // ─── Render: Expenses ─────────────────────────────────────────────────────
+      function renderExpenses(expenseBreakdown) {
+        const search = els.searchInput.value.toLowerCase().trim();
+        const catFilter = els.filterCategory.value;
+        const payerFilter = els.filterPayer.value;
+
+        let filtered = expenseBreakdown.filter(exp => {
+          const matchSearch = !search ||
+            exp.title.toLowerCase().includes(search) ||
+            personName(exp.paidBy).toLowerCase().includes(search) ||
+            (exp.note || '').toLowerCase().includes(search);
+          const matchCat = !catFilter || exp.category === catFilter;
+          const matchPayer = !payerFilter || exp.paidBy === payerFilter;
+          return matchSearch && matchCat && matchPayer;
+        });
+
+        els.expenseList.innerHTML = filtered.map(expense => {
+          const chips = expense.participantIds.map(id => `<span class="chip">${escapeHtml(personName(id))}</span>`).join('');
+          const sharesText = Object.entries(expense.computedShares)
+            .map(([id, amount]) => `${escapeHtml(personName(id))}: ${fmt(amount)}`).join(' · ');
+          const modeLabel = expense.mode === 'equal' ? 'Equal' : expense.mode === 'custom' ? 'Custom' : 'Percentage';
+          const catMeta = CATEGORY_META[expense.category] || CATEGORY_META.other;
+          const dateStr = expense.date ? `<span>${new Date(expense.date).toLocaleDateString()}</span>` : '';
+          const noteStr = expense.note ? `<span title="${escapeHtml(expense.note)}">📝 ${escapeHtml(expense.note.length > 30 ? expense.note.slice(0,30)+'…' : expense.note)}</span>` : '';
+
+          // Build inline edit form
+          const payerOptions = state.people.map(p =>
+            `<option value="${p.id}"${p.id === expense.paidBy ? ' selected' : ''}>${escapeHtml(p.name)}</option>`
+          ).join('');
+          const catOptions = Object.entries(CATEGORY_META).map(([k,v]) =>
+            `<option value="${k}"${k === (expense.category||'other') ? ' selected' : ''}>${v.icon} ${v.label}</option>`
+          ).join('');
+          const participantChecks = state.people.map(p =>
+            `<label class="check"><input type="checkbox" data-edit-participant value="${p.id}"${expense.participantIds.includes(p.id)?' checked':''}/><span>${escapeHtml(p.name)}</span></label>`
+          ).join('');
+
+          // Shares editor in inline form (simplified: always show custom amount fields if mode != equal)
+          const sharesEditorInline = expense.mode !== 'equal'
+            ? expense.participantIds.map(pid => {
+                const curVal = expense.shares[pid] != null ? expense.shares[pid] : '';
+                return `<div class="share-row"><div class="name">${escapeHtml(personName(pid))}</div><input type="number" step="0.01" min="0" data-edit-share="${pid}" value="${curVal}" placeholder="0" /></div>`;
+              }).join('')
+            : `<div class="hint">Equal — no share values needed.</div>`;
+
+          return `
+            <div class="expense-card" id="expense-card-${expense.id}">
+              <div class="expense-top">
+                <div>
+                  <div class="expense-title">${catMeta.icon} ${escapeHtml(expense.title)}</div>
+                  <div class="expense-meta">
+                    <span>Paid by <strong>${escapeHtml(personName(expense.paidBy))}</strong></span>
+                    <span class="chip cat">${catMeta.label}</span>
+                    <span>${modeLabel} split</span>
+                    <span style="font-family:'DM Mono',monospace;font-weight:700">${fmt(expense.amount)}</span>
+                    ${dateStr}
+                    ${noteStr}
+                  </div>
+                </div>
+                <div class="expense-actions">
+                  <button class="secondary sm" data-edit-toggle="${expense.id}">✏️ Edit</button>
+                  <button class="danger sm" data-remove-expense="${expense.id}">Delete</button>
+                </div>
+              </div>
+              <div class="expense-bottom">
+                <div class="chips">${chips}</div>
+                <div class="muted" style="font-size:12px;text-align:right;font-family:'DM Mono',monospace">${sharesText}</div>
+              </div>
+              <!-- Inline edit form -->
+              <div class="inline-edit-form" id="edit-form-${expense.id}">
+                <div class="stack">
+                  <div class="grid-3">
+                    <div class="input-group"><label>Name</label><input data-edit="title" value="${escapeHtml(expense.title)}" /></div>
+                    <div class="input-group"><label>Amount</label><input type="number" step="0.01" min="0" data-edit="amount" value="${expense.amount}" /></div>
+                    <div class="input-group"><label>Paid by</label><select data-edit="paidBy">${payerOptions}</select></div>
+                  </div>
+                  <div class="grid-2">
+                    <div class="input-group"><label>Category</label><select data-edit="category">${catOptions}</select></div>
+                    <div class="input-group"><label>Date</label><input type="datetime-local" data-edit="date" value="${expense.date||''}" /></div>
+                  </div>
+                  <div class="input-group"><label>Note</label><input data-edit="note" value="${escapeHtml(expense.note||'')}" placeholder="Optional note" /></div>
+                  <div class="input-group"><label>Split among</label><div class="checkbox-grid">${participantChecks}</div></div>
+                  <div class="grid-2">
+                    <div class="input-group"><label>Split mode</label>
+                      <select data-edit="splitMode">
+                        <option value="equal"${expense.mode==='equal'?' selected':''}>Equal</option>
+                        <option value="custom"${expense.mode==='custom'?' selected':''}>Custom</option>
+                        <option value="percent"${expense.mode==='percent'?' selected':''}>Percentage</option>
+                      </select>
+                    </div>
+                    <div class="input-group"><label>Rounding</label>
+                      <select data-edit="rounding">
+                        <option value="nearest"${(expense.rounding||'nearest')==='nearest'?' selected':''}>Nearest</option>
+                        <option value="up"${expense.rounding==='up'?' selected':''}>Round up</option>
+                        <option value="down"${expense.rounding==='down'?' selected':''}>Round down</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div id="inline-shares-${expense.id}" class="stack">${sharesEditorInline}</div>
+                  <div class="toolbar">
+                    <button data-save-edit="${expense.id}">Save changes</button>
+                    <button class="secondary" data-cancel-edit="${expense.id}">Cancel</button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+
+        const noResults = filtered.length === 0;
+        els.expenseEmpty.style.display = noResults ? 'block' : 'none';
+        if (noResults && (search || catFilter || payerFilter)) {
+          els.expenseEmpty.innerHTML = '<strong>No matching expenses</strong>Try clearing the search or filters.';
+        } else if (noResults) {
+          els.expenseEmpty.innerHTML = '<strong>No expenses yet</strong>Add your first shared payment above.';
+        }
+        els.expenseCountBadge.textContent = `${state.expenses.length} ${state.expenses.length === 1 ? 'expense' : 'expenses'}`;
+      }
+
+      // ─── Render: Settlement ───────────────────────────────────────────────────
+      function renderSettlement(settlements, balances) {
+        els.settlementList.innerHTML = settlements.map(tx => {
+          const fromName = escapeHtml(personName(tx.from));
+          const toName = escapeHtml(personName(tx.to));
+          const fromBal = money(balances[tx.from]);
+          const toBal = money(balances[tx.to]);
+          const whyText = `${escapeHtml(personName(tx.from))}'s balance is ${fmt(Math.abs(fromBal))} in the red. ${escapeHtml(personName(tx.to))}'s balance is ${fmt(toBal)} in credit. Paying ${fmt(tx.amount)} balances both out.`;
+
+          return `
+            <div class="settlement-card" id="stl-${tx.from}-${tx.to}">
+              <div class="settlement-main-row">
+                <div class="settlement-main">
+                  <span class="badge red">Pay</span>
+                  <div>
+                    <div class="name">${fromName} → ${toName}</div>
+                    <div class="sub">One clean transaction</div>
+                  </div>
+                </div>
+                <div class="settlement-actions">
+                  <button class="ghost sm" data-why-toggle="${tx.from}-${tx.to}">Why?</button>
+                  <button class="success-btn sm" data-mark-paid="${tx.from}-${tx.to}">Mark paid</button>
+                  <div class="money">${fmt(tx.amount)}</div>
+                </div>
+              </div>
+              <div class="settlement-why" id="why-${tx.from}-${tx.to}">${whyText}</div>
+            </div>
+          `;
+        }).join('');
+        els.settlementEmpty.style.display = settlements.length ? 'none' : 'block';
+      }
+
+      // ─── Render: Balances ─────────────────────────────────────────────────────
+      function renderBalances(calc) {
+        if (!state.people.length) { els.balanceEmpty.style.display = 'block'; return; }
+        els.balanceEmpty.style.display = 'none';
+        els.balanceList.innerHTML = state.people.map(person => {
+          const balance = money(calc.balances[person.id]);
+          const badge = balance > 0.009
+            ? `<span class="badge green">Gets back</span>`
+            : balance < -0.009
+              ? `<span class="badge red">Needs to pay</span>`
+              : `<span class="badge blue">Settled</span>`;
+
+          let summaryLine = '';
+          if (state.expenses.length > 0) {
+            if (balance > 0.009)
+              summaryLine = `<div class="person-summary-line gets">should receive ${fmt(balance)}</div>`;
+            else if (balance < -0.009)
+              summaryLine = `<div class="person-summary-line owes">should pay ${fmt(Math.abs(balance))}</div>`;
+            else
+              summaryLine = `<div class="person-summary-line settled">is fully settled</div>`;
+          }
+
+          return `
+            <div class="balance-item">
+              <div class="balance-left">
+                <div class="name">${escapeHtml(person.name)}</div>
+                <div class="sub">Paid ${fmt(calc.paid[person.id] || 0)} · Owed ${fmt(calc.owed[person.id] || 0)}</div>
+                ${summaryLine}
+              </div>
+              <div style="text-align:right">
+                ${badge}
+                <div class="money" style="font-size:18px;margin-top:6px">${balance >= 0 ? '+' : '-'}${fmt(Math.abs(balance))}</div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      // ─── Render: Stats ────────────────────────────────────────────────────────
+      function renderStats(calc) {
+        els.statTotal.textContent = fmtNum(calc.total);
+        els.statPeople.textContent = String(state.people.length);
+        els.statExpenses.textContent = String(state.expenses.length);
+      }
+
+      // ─── Render: All ──────────────────────────────────────────────────────────
+      function render() {
+        renderPeople();
+        renderParticipantsAndPayer();
+        renderSharesEditor();
+        const calc = compute();
+        renderExpenses(calc.expenseBreakdown);
+        renderSettlement(calc.settlements, calc.balances);
+        renderBalances(calc);
+        renderStats(calc);
+      }
+
+      // ─── Export / Import ──────────────────────────────────────────────────────
+      function exportJson() {
+        const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a'); a.href = url; a.download = 'split-bill-data.json'; a.click();
+        URL.revokeObjectURL(url);
+        showToast('Exported as JSON ✓');
+      }
+
+      function importJson(file) {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const parsed = JSON.parse(reader.result);
+            if (!parsed || !Array.isArray(parsed.people) || !Array.isArray(parsed.expenses)) throw new Error('Invalid format');
+            state = parsed;
+            save(); render();
+            showToast('Import successful ✓');
+          } catch (e) {
+            showToast('Could not import this file.', 'info');
+          }
+        };
+        reader.readAsText(file);
+      }
+
+      // ─── Copy settlement ──────────────────────────────────────────────────────
+      function copySettlement() {
+        const calc = compute();
+        if (!calc.settlements.length) { showToast('Nothing to copy — no settlements.', 'info'); return; }
+        const lines = [
+          `Split Bill Settlement — ${new Date().toLocaleDateString()}`,
+          `Currency: ${currency.code} (${currency.symbol})`,
+          `Total: ${fmt(calc.total)}`,
+          '',
+          '=== Transactions ===',
+          ...calc.settlements.map(tx =>
+            `${personName(tx.from)} → ${personName(tx.to)}: ${fmt(tx.amount)}`
+          ),
+          '',
+          '=== Balances ===',
+          ...state.people.map(p => {
+            const bal = money(calc.balances[p.id]);
+            if (bal > 0.009) return `${p.name}: receives ${fmt(bal)}`;
+            if (bal < -0.009) return `${p.name}: pays ${fmt(Math.abs(bal))}`;
+            return `${p.name}: settled`;
+          })
+        ];
+        navigator.clipboard.writeText(lines.join('\n')).then(() => {
+          showToast('Settlement copied to clipboard ✓');
+        }).catch(() => {
+          showToast('Could not copy — check browser permissions.', 'info');
+        });
+      }
+
+      // ─── Event delegation ─────────────────────────────────────────────────────
+      document.addEventListener('click', e => {
+        const removePersonId = e.target.getAttribute('data-remove-person');
+        const removeExpenseId = e.target.getAttribute('data-remove-expense');
+        const editToggleId = e.target.getAttribute('data-edit-toggle');
+        const saveEditId = e.target.getAttribute('data-save-edit');
+        const cancelEditId = e.target.getAttribute('data-cancel-edit');
+        const markPaidKey = e.target.getAttribute('data-mark-paid');
+        const whyToggleKey = e.target.getAttribute('data-why-toggle');
+        const templateKey = e.target.getAttribute('data-template');
+
+        if (removePersonId) { removePerson(removePersonId); return; }
+        if (removeExpenseId) { removeExpense(removeExpenseId); return; }
+
+        if (editToggleId) {
+          const form = document.getElementById(`edit-form-${editToggleId}`);
+          if (form) form.classList.toggle('open');
+          return;
+        }
+        if (saveEditId) { saveInlineEdit(saveEditId); return; }
+        if (cancelEditId) {
+          const form = document.getElementById(`edit-form-${cancelEditId}`);
+          if (form) form.classList.remove('open');
+          return;
+        }
+        if (markPaidKey) {
+          const card = document.getElementById(`stl-${markPaidKey}`);
+          if (!card) return;
+          const isPaid = card.classList.toggle('paid-off');
+          const btn = e.target;
+          btn.textContent = isPaid ? '↩ Undo' : 'Mark paid';
+          return;
+        }
+        if (whyToggleKey) {
+          const why = document.getElementById(`why-${whyToggleKey}`);
+          if (why) why.classList.toggle('open');
+          return;
+        }
+        if (templateKey) {
+          const tpl = TEMPLATES[templateKey];
+          if (tpl) {
+            els.expenseTitle.value = tpl.title;
+            els.expenseCategory.value = tpl.category;
+            els.expenseAmount.focus();
+          }
+          return;
+        }
+      });
+
+      // ─── Wiring ───────────────────────────────────────────────────────────────
+      els.addPersonBtn.addEventListener('click', addPerson);
+      els.personName.addEventListener('keydown', e => { if (e.key === 'Enter') addPerson(); });
+      els.addExpenseBtn.addEventListener('click', addExpense);
+      els.clearExpenseFormBtn.addEventListener('click', clearExpenseForm);
+      els.splitMode.addEventListener('change', renderSharesEditor);
+      els.participantsBox.addEventListener('change', renderSharesEditor);
+      els.sampleBtn.addEventListener('click', () => { loadSample(true); showToast('Sample data loaded ✓'); });
+      els.exportBtn.addEventListener('click', exportJson);
+      els.importBtn.addEventListener('click', () => els.importFile.click());
+      els.importFile.addEventListener('change', e => {
+        const file = e.target.files?.[0];
+        if (file) importJson(file);
+        e.target.value = '';
+      });
+      els.resetBtn.addEventListener('click', () => {
+        if (!confirm('Reset all people and expenses?')) return;
+        state = { people: [], expenses: [] };
+        save(); render();
+        showToast('Reset complete.');
+      });
+      els.currencySelect.addEventListener('change', () => {
+        const code = els.currencySelect.value;
+        currency = { code, symbol: CURRENCIES[code] };
+        render();
+      });
+      els.copySettlementBtn.addEventListener('click', copySettlement);
+      els.searchInput.addEventListener('input', () => { const calc = compute(); renderExpenses(calc.expenseBreakdown); });
+      els.filterCategory.addEventListener('change', () => { const calc = compute(); renderExpenses(calc.expenseBreakdown); });
+      els.filterPayer.addEventListener('change', () => { const calc = compute(); renderExpenses(calc.expenseBreakdown); });
+
+      // ─── Boot ─────────────────────────────────────────────────────────────────
+      load();
+      render();
+      window.splitBillPro = { getState: () => state, compute };
+    })();
+  </script>
+</body>
+</html>
