@@ -1,0 +1,4078 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="description" content="Split bills fairly — scan receipts, assign items, settle up with one tap." />
+  <meta name="theme-color" content="#3b5bdb" />
+  <title>Split Bill Pro</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Syne:wght@700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <style>
+    /* ── Design tokens ───────────────────────────────────────────────── */
+    :root {
+      --bg:        #eef0f6;
+      --surface:   #ffffff;
+      --surface-2: #f5f7fb;
+      --surface-3: #edf0f8;
+      --border:    #dde1ed;
+      --border-2:  #c8cede;
+      --text:      #0d1117;
+      --text-2:    #3d4663;
+      --text-3:    #717a96;
+      --primary:   #3b5bdb;
+      --primary-h: #2f4bc4;
+      --primary-s: #eaedff;
+      --primary-t: rgba(59,91,219,.13);
+      --green:     #0b6e4f;
+      --green-s:   #d0f5e3;
+      --red:       #b91c1c;
+      --red-s:     #fde8e8;
+      --yellow:    #b45309;
+      --yellow-s:  #fef3c7;
+      --purple:    #6d28d9;
+      --purple-s:  #ede9fe;
+      --radius:    16px;
+      --radius-sm: 10px;
+      --radius-xs: 7px;
+      --shadow-sm: 0 1px 3px rgba(13,17,23,.07), 0 1px 2px rgba(13,17,23,.05);
+      --shadow:    0 4px 16px rgba(13,17,23,.09), 0 1px 4px rgba(13,17,23,.05);
+      --shadow-lg: 0 12px 40px rgba(13,17,23,.14), 0 4px 12px rgba(13,17,23,.07);
+      --touch-min: 44px;
+    }
+
+    /* ── Dark mode tokens ────────────────────────────────────────────── */
+    [data-theme="dark"] {
+      --bg:        #0f1117;
+      --surface:   #1a1d27;
+      --surface-2: #222535;
+      --surface-3: #272a3d;
+      --border:    #2e3249;
+      --border-2:  #3c4160;
+      --text:      #e8eaf2;
+      --text-2:    #a8b0cc;
+      --text-3:    #6b7399;
+      --primary:   #5c7cfa;
+      --primary-h: #4c6ef5;
+      --primary-s: #1e2547;
+      --primary-t: rgba(92,124,250,.18);
+      --green:     #40c98a;
+      --green-s:   #0d2e20;
+      --red:       #f87171;
+      --red-s:     #2d1212;
+      --yellow:    #fbbf24;
+      --yellow-s:  #2d2003;
+      --purple:    #a78bfa;
+      --purple-s:  #1e1438;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+      --shadow:    0 4px 16px rgba(0,0,0,.4);
+      --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
+    }
+    /* Respect OS dark preference automatically unless user has toggled */
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) {
+        --bg:        #0f1117;
+        --surface:   #1a1d27;
+        --surface-2: #222535;
+        --surface-3: #272a3d;
+        --border:    #2e3249;
+        --border-2:  #3c4160;
+        --text:      #e8eaf2;
+        --text-2:    #a8b0cc;
+        --text-3:    #6b7399;
+        --primary:   #5c7cfa;
+        --primary-h: #4c6ef5;
+        --primary-s: #1e2547;
+        --primary-t: rgba(92,124,250,.18);
+        --green:     #40c98a;
+        --green-s:   #0d2e20;
+        --red:       #f87171;
+        --red-s:     #2d1212;
+        --yellow:    #fbbf24;
+        --yellow-s:  #2d2003;
+        --shadow-sm: 0 1px 3px rgba(0,0,0,.3);
+        --shadow:    0 4px 16px rgba(0,0,0,.4);
+        --shadow-lg: 0 12px 40px rgba(0,0,0,.5);
+      }
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    /* ── App shell ───────────────────────────────────────────────────── */
+    .app-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: var(--shadow-sm);
+    }
+    .header-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      height: 60px;
+      flex-wrap: wrap;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+    .logo-icon {
+      width: 34px; height: 34px;
+      background: var(--primary);
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 17px;
+      flex-shrink: 0;
+    }
+    .logo-text {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px;
+      font-weight: 800;
+      letter-spacing: -.01em;
+      color: var(--text);
+    }
+    .logo-text span { color: var(--primary); }
+    .header-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    /* ── Session title bar ───────────────────────────────────────────── */
+    .session-bar {
+      background: var(--primary-s);
+      border-bottom: 1px solid #c5cff6;
+      padding: 10px 24px;
+    }
+    .session-bar-inner {
+      max-width: 1280px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+    }
+    .session-label { font-size: 12px; font-weight: 700; color: var(--primary); text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+    #sessionTitleInput {
+      flex: 1;
+      min-width: 160px;
+      max-width: 340px;
+      padding: 7px 12px;
+      border: 1px solid #c5cff6;
+      border-radius: 9px;
+      background: #fff;
+      font-size: 14px;
+      font-family: inherit;
+      font-weight: 700;
+      color: var(--text);
+      outline: none;
+    }
+    #sessionTitleInput:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-t); }
+    .currency-selector {
+      display: flex; align-items: center; gap: 8px;
+    }
+    .currency-selector label { font-size: 12px; font-weight: 700; color: var(--text-2); white-space: nowrap; }
+    .currency-selector select {
+      padding: 6px 10px; border-radius: 8px; border: 1px solid var(--border-2);
+      background: #fff; font-size: 13px; font-family: inherit; color: var(--text); outline: none;
+    }
+    .currency-selector select:focus { border-color: var(--primary); }
+    .session-stats { display: flex; gap: 14px; flex-wrap: wrap; margin-left: auto; }
+    .session-stat { font-size: 12px; font-weight: 600; color: var(--text-2); }
+    .session-stat strong { color: var(--text); font-family: 'JetBrains Mono', monospace; font-size: 13px; }
+
+    /* ── Main layout ─────────────────────────────────────────────────── */
+    .main-wrap { max-width: 1280px; margin: 0 auto; padding: 24px 24px 60px; }
+    .layout { display: grid; grid-template-columns: 1fr 420px; gap: 20px; align-items: start; }
+    .col { display: flex; flex-direction: column; gap: 20px; }
+
+    /* ── Cards ───────────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+    .card-head {
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+    .card-head-left { display: flex; flex-direction: column; gap: 2px; }
+    .step-label {
+      font-size: 11px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: .1em;
+      color: var(--primary);
+    }
+    .card-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--text);
+    }
+    .card-body { padding: 20px; }
+    .card-body + .card-body { padding-top: 0; }
+
+    /* ── Badges ──────────────────────────────────────────────────────── */
+    .badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+    }
+    .badge-blue   { background: var(--primary-s); color: var(--primary); border: 1px solid #c5cff6; }
+    .badge-green  { background: var(--green-s); color: var(--green); border: 1px solid #b2f2bb; }
+    .badge-red    { background: var(--red-s); color: var(--red); border: 1px solid #ffc9c9; }
+    .badge-yellow { background: var(--yellow-s); color: var(--yellow); border: 1px solid #ffd97d; }
+    .badge-muted  { background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); }
+
+    /* ── Buttons ─────────────────────────────────────────────────────── */
+    button {
+      border: none; cursor: pointer; font-family: inherit;
+      font-weight: 700; transition: .16s ease; border-radius: var(--radius-sm);
+      min-height: var(--touch-min);
+    }
+    button:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+    .btn-primary {
+      background: var(--primary); color: #fff;
+      padding: 11px 20px; font-size: 14px;
+      box-shadow: 0 4px 14px rgba(59,91,219,.3);
+    }
+    .btn-primary:hover { background: var(--primary-h); transform: translateY(-1px); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-secondary {
+      background: var(--surface); color: var(--text);
+      border: 1.5px solid var(--border-2);
+      padding: 10px 16px; font-size: 13px;
+    }
+    .btn-secondary:hover { background: var(--surface-2); border-color: var(--border); }
+    .btn-ghost {
+      background: transparent; color: var(--primary);
+      border: 1.5px solid #c5cff6;
+      padding: 7px 13px; font-size: 12px;
+    }
+    .btn-ghost:hover { background: var(--primary-s); }
+    .btn-danger {
+      background: var(--red-s); color: var(--red);
+      border: 1.5px solid #ffc9c9;
+      padding: 7px 13px; font-size: 12px;
+    }
+    .btn-danger:hover { background: #fdd5d5; }
+    .btn-success {
+      background: var(--green-s); color: var(--green);
+      border: 1.5px solid #a7f0d0;
+      padding: 7px 13px; font-size: 12px;
+    }
+    .btn-success:hover { background: #b8f5da; }
+    .btn-sm { padding: 7px 13px; font-size: 12px; min-height: 36px; }
+    button:disabled { opacity: .42; cursor: not-allowed; transform: none !important; }
+
+    /* ── Form elements ───────────────────────────────────────────────── */
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    label.field-label { font-size: 12px; font-weight: 700; color: var(--text-2); letter-spacing: .01em; }
+    .input-hint { font-size: 11px; color: var(--text-3); }
+    input, select, textarea {
+      width: 100%; padding: 11px 14px;
+      border: 1.5px solid var(--border-2);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      font-size: 14px; font-family: inherit; color: var(--text);
+      outline: none; transition: .15s ease;
+      min-height: var(--touch-min);
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px var(--primary-t);
+    }
+    input::placeholder { color: var(--text-3); font-weight: 500; }
+    select { color: var(--text); }
+    select option { color: var(--text); }
+    textarea { resize: vertical; min-height: 60px; }
+    .input-row { display: flex; gap: 8px; }
+    .input-row input { flex: 1; }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 12px; }
+    .stack { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Participant pills ───────────────────────────────────────────── */
+    .pills-row { display: flex; flex-wrap: wrap; gap: 8px; }
+    .person-pill {
+      display: inline-flex; align-items: flex-start; gap: 8px;
+      padding: 8px 12px; border-radius: 14px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-weight: 700; font-size: 13px; transition: .15s;
+      min-width: 140px;
+    }
+    .person-pill:hover { border-color: var(--border-2); }
+    .person-pill .pill-balance { font-size: 11px; font-weight: 700; }
+    .person-pill .pill-balance.pos { color: var(--green); }
+    .person-pill .pill-balance.neg { color: var(--red); }
+    .person-pill .pill-balance.neu { color: var(--text-3); }
+    .pill-remove {
+      background: none; border: none; color: var(--text-3);
+      font-size: 16px; line-height: 1; padding: 0; cursor: pointer;
+      font-weight: 400; transition: .12s;
+    }
+    .pill-remove:hover { color: var(--red); transform: none; }
+
+    /* ── Template quick-picks ────────────────────────────────────────── */
+    .templates-row { display: flex; gap: 6px; flex-wrap: wrap; }
+    .tpl-btn {
+      padding: 6px 12px; font-size: 12px; border-radius: 999px;
+      background: var(--primary-s); color: var(--primary);
+      border: 1px solid #c5cff6; font-weight: 700; transition: .14s;
+    }
+    .tpl-btn:hover { background: #d8e0ff; transform: translateY(-1px); }
+
+    /* ── Checkbox grid ───────────────────────────────────────────────── */
+    .check-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .check-item {
+      display: flex; align-items: center; gap: 9px;
+      padding: 9px 12px; border: 1px solid var(--border);
+      border-radius: var(--radius-sm); background: var(--surface);
+      cursor: pointer; transition: .14s; font-size: 13px; font-weight: 600;
+    }
+    .check-item:hover { border-color: var(--border-2); background: var(--surface-2); }
+    .check-item input { width: auto; padding: 0; margin: 0; accent-color: var(--primary); }
+    .check-item.checked-item { border-color: #c5cff6; background: var(--primary-s); }
+
+    /* ── Advanced split accordion ────────────────────────────────────── */
+    .accordion { border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; margin-top: 4px; }
+    .accordion-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 11px 14px; background: var(--surface-2);
+      cursor: pointer; font-size: 13px; font-weight: 700;
+      color: var(--text-2); transition: .14s; user-select: none;
+    }
+    .accordion-head:hover { background: #eceff5; }
+    .accordion-arrow { font-size: 12px; transition: .2s; }
+    .accordion-body { display: none; padding: 14px; border-top: 1px solid var(--border); background: var(--surface); }
+    .accordion.open .accordion-arrow { transform: rotate(180deg); }
+    .accordion.open .accordion-body { display: block; }
+    .share-row { display: grid; grid-template-columns: 1fr 120px; gap: 10px; align-items: center; }
+    .share-row .sname { font-weight: 700; font-size: 13px; }
+
+    /* ── Expense list ────────────────────────────────────────────────── */
+    .filter-bar { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; }
+    .filter-bar input,
+    .filter-bar select { flex: 1; min-width: 120px; padding: 9px 12px; font-size: 13px; border-radius: var(--radius-sm); }
+
+    .expense-list { display: flex; flex-direction: column; gap: 10px; }
+    .exp-card {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      overflow: hidden;
+      transition: .15s;
+    }
+    .exp-card:hover { border-color: var(--border-2); box-shadow: var(--shadow-sm); }
+    .exp-main { padding: 13px 14px; display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+    .exp-left { flex: 1; min-width: 0; }
+    .exp-name { font-size: 15px; font-weight: 800; margin-bottom: 4px; }
+    .exp-meta { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; color: var(--text-2); font-size: 12px; font-weight: 600; }
+    .exp-meta .cat-chip {
+      padding: 3px 8px; border-radius: 999px;
+      background: var(--primary-s); color: var(--primary);
+      border: 1px solid #c5cff6; font-size: 11px; font-weight: 700;
+    }
+    .exp-amount { font-family: 'JetBrains Mono', monospace; font-size: 16px; font-weight: 600; white-space: nowrap; }
+    .exp-right { display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+    .exp-actions { display: flex; gap: 6px; }
+    .exp-footer { padding: 8px 14px 11px; border-top: 1px dashed var(--border); display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+    .member-chip {
+      padding: 3px 8px; border-radius: 999px;
+      background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 11px; font-weight: 700; color: var(--text-2);
+    }
+    .shares-text { font-size: 11px; color: var(--text-3); margin-left: auto; font-family: 'JetBrains Mono', monospace; }
+
+    /* ── Inline edit form ────────────────────────────────────────────── */
+    .inline-edit { display: none; padding: 14px; border-top: 1px solid var(--border); background: var(--surface-2); }
+    .inline-edit.open { display: block; }
+
+    /* ── Settlement panel ────────────────────────────────────────────── */
+    .settle-header {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; margin-bottom: 14px; flex-wrap: wrap;
+    }
+    .settle-summary-box {
+      background: linear-gradient(135deg, var(--primary-s) 0%, #fff 100%);
+      border: 1px solid #c5cff6;
+      border-radius: 14px;
+      padding: 16px 18px;
+      margin-bottom: 16px;
+    }
+    .settle-summary-box .ssb-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 17px; font-weight: 800; color: var(--text); margin-bottom: 4px;
+    }
+    .settle-summary-box .ssb-sub { font-size: 13px; color: var(--text-2); line-height: 1.5; }
+    .settle-total { font-family: 'JetBrains Mono', monospace; font-weight: 600; color: var(--primary); }
+
+    .settle-list { display: flex; flex-direction: column; gap: 10px; }
+    .settle-card {
+      border: 1px solid var(--border); border-radius: 12px;
+      overflow: hidden; background: var(--surface); transition: .15s;
+    }
+    .settle-card:hover { border-color: var(--border-2); }
+    .settle-card.paid-off { opacity: .55; }
+    .settle-card.paid-off .settle-row { text-decoration: line-through; color: var(--text-3); }
+    .settle-row {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 12px; padding: 13px 14px; flex-wrap: wrap;
+    }
+    .settle-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .settle-arrow {
+      display: flex; align-items: center; gap: 6px; font-size: 14px; font-weight: 700;
+    }
+    .settle-arrow .from { color: var(--red); }
+    .settle-arrow .arr { color: var(--text-3); }
+    .settle-arrow .to { color: var(--green); }
+    .settle-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .settle-amount { font-family: 'JetBrains Mono', monospace; font-size: 18px; font-weight: 700; }
+    .settle-why-block { font-size: 12px; color: var(--text-2); background: var(--surface-2); padding: 10px 14px; border-top: 1px solid var(--border); display: none; line-height: 1.6; }
+    .settle-why-block.open { display: block; }
+
+    /* ── Balance list ────────────────────────────────────────────────── */
+    .balance-list { display: flex; flex-direction: column; gap: 8px; }
+    .bal-item {
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 10px; padding: 13px 14px;
+      border: 1px solid var(--border); border-radius: 12px;
+      background: var(--surface);
+    }
+    .bal-left { flex: 1; }
+    .bal-name { font-weight: 800; font-size: 14px; margin-bottom: 3px; }
+    .bal-sub { font-size: 12px; color: var(--text-3); font-weight: 600; }
+    .bal-right { text-align: right; }
+    .bal-amount {
+      font-family: 'JetBrains Mono', monospace; font-size: 17px;
+      font-weight: 700; margin-top: 4px;
+    }
+    .bal-amount.pos { color: var(--green); }
+    .bal-amount.neg { color: var(--red); }
+    .bal-amount.neu { color: var(--text-3); }
+
+    /* ── Stats row ───────────────────────────────────────────────────── */
+    .stats-row { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .stat-box {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px 16px; text-align: center;
+    }
+    .stat-box .sk { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .07em; color: var(--text-3); margin-bottom: 6px; }
+    .stat-box .sv { font-family: 'JetBrains Mono', monospace; font-size: 20px; font-weight: 700; color: var(--text); }
+
+    /* ── Empty state ─────────────────────────────────────────────────── */
+    .empty-state {
+      text-align: center; padding: 24px 16px;
+      border: 1.5px dashed var(--border-2); border-radius: var(--radius-sm);
+      background: var(--surface-2); color: var(--text-2);
+    }
+    .empty-state strong { display: block; font-size: 14px; color: var(--text); margin-bottom: 4px; }
+    .empty-state p { font-size: 13px; line-height: 1.5; }
+
+    /* ── Toast ───────────────────────────────────────────────────────── */
+    #toast-wrap {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      display: flex; flex-direction: column; gap: 8px;
+      z-index: 9999; pointer-events: none;
+    }
+    .toast {
+      background: #0d1117; color: #fff;
+      padding: 11px 18px; border-radius: 12px;
+      font-size: 13px; font-weight: 700;
+      box-shadow: 0 8px 28px rgba(0,0,0,.25);
+      opacity: 0; transform: translateY(12px);
+      transition: .24s cubic-bezier(.4,0,.2,1);
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateY(0); }
+    .toast.success { background: #1a6b44; }
+    .toast.info { background: #1e3a8a; }
+
+    /* ── Misc ────────────────────────────────────────────────────────── */
+    .hint { font-size: 12px; color: var(--text-3); line-height: 1.5; }
+    .divider { height: 1px; background: var(--border); margin: 4px 0; }
+    .toolbar { display: flex; gap: 8px; flex-wrap: wrap; }
+    .text-muted { color: var(--text-3); }
+    .paid-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 3px 9px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
+      background: var(--green-s); color: var(--green);
+      border: 1px solid #b2f2bb;
+    }
+
+    /* ── Step accordion (collapsible cards) ─────────────────────────── */
+    .step-card { }
+    .step-card-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 16px 20px; cursor: pointer; user-select: none;
+      border-bottom: 1px solid transparent; transition: background .13s;
+      gap: 12px;
+    }
+    .step-card-head:hover { background: var(--surface-2); }
+    .step-card-head.open { border-bottom-color: var(--border); }
+    .step-card-head-left { display: flex; align-items: center; gap: 12px; flex: 1; min-width: 0; }
+    .step-num {
+      width: 26px; height: 26px; border-radius: 50%; flex-shrink: 0;
+      background: var(--primary-s); color: var(--primary); border: 1.5px solid #c5cff6;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800;
+    }
+    .step-num.done { background: var(--green-s); color: var(--green); border-color: #a7f0d0; }
+    .step-card-head-info { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+    .step-card-title { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--text); }
+    .step-card-subtitle { font-size: 11px; color: var(--text-3); font-weight: 500; }
+    .step-card-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .step-chevron {
+      width: 22px; height: 22px; display: flex; align-items: center; justify-content: center;
+      border-radius: 50%; background: var(--surface-2); border: 1px solid var(--border);
+      font-size: 10px; color: var(--text-3); transition: transform .22s ease, background .13s;
+      flex-shrink: 0;
+    }
+    .step-card-head.open .step-chevron { transform: rotate(180deg); background: var(--primary-s); color: var(--primary); border-color: #c5cff6; }
+    .step-card-body {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height .36s cubic-bezier(0.4, 0, 0.2, 1), opacity .25s ease;
+      opacity: 0;
+    }
+    .step-card-body.open { max-height: 3200px; opacity: 1; }
+    .step-card-body-inner { padding: 20px; }
+    .step-card-body-inner.stack { display: flex; flex-direction: column; gap: 14px; }
+
+    /* ── Active step highlight ───────────────────────────────────────── */
+    .step-card-head.active-step { background: linear-gradient(90deg, var(--primary-s) 0%, transparent 100%); }
+    .step-card-head.active-step .step-num { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* ── Field validation states ─────────────────────────────────────── */
+    .field-error input, .field-error select { border-color: var(--red) !important; box-shadow: 0 0 0 3px rgba(185,28,28,.12) !important; }
+    .field-error-msg { font-size: 11px; font-weight: 600; color: var(--red); margin-top: 3px; display: none; }
+    .field-error .field-error-msg { display: block; }
+
+    /* ── Session manager ─────────────────────────────────────────────── */
+    .session-manager { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+    .session-manager-label { font-size: 11px; font-weight: 800; color: var(--text-3); text-transform: uppercase; letter-spacing: .07em; white-space: nowrap; }
+    .session-select { flex: 1; min-width: 130px; max-width: 200px; padding: 6px 10px; font-size: 13px; min-height: unset; }
+    .btn-session { padding: 5px 11px; font-size: 12px; min-height: unset; border-radius: 8px; white-space: nowrap; }
+    .btn-session.save   { background: var(--primary-s); color: var(--primary); border: 1.5px solid #c5cff6; }
+    .btn-session.save:hover { background: #d8e0ff; }
+    .btn-session.load   { background: var(--green-s); color: var(--green); border: 1.5px solid #a7f0d0; }
+    .btn-session.load:hover { background: #b8f5da; }
+    .btn-session.del    { background: var(--red-s); color: var(--red); border: 1.5px solid #ffc9c9; }
+    .btn-session.del:hover { background: #fdd5d5; }
+    .btn-session.rename { background: var(--yellow-s); color: var(--yellow); border: 1.5px solid #fde68a; }
+    .btn-session.rename:hover { background: #fef08a; }
+
+    /* ── Rename session modal ────────────────────────────────────────── */
+    .rename-overlay {
+      position: fixed; inset: 0; background: rgba(13,17,23,.5);
+      backdrop-filter: blur(4px); z-index: 4000;
+      display: flex; align-items: center; justify-content: center; padding: 16px;
+      opacity: 0; pointer-events: none; transition: opacity .18s;
+    }
+    .rename-overlay.open { opacity: 1; pointer-events: all; }
+    .rename-modal {
+      background: var(--surface); border-radius: 16px; box-shadow: var(--shadow-lg);
+      padding: 24px; width: 100%; max-width: 360px;
+      transform: scale(.96); transition: transform .18s ease;
+    }
+    .rename-overlay.open .rename-modal { transform: scale(1); }
+    .rename-title { font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 800; color: var(--text); margin-bottom: 14px; }
+    .rename-input { width: 100%; margin-bottom: 14px; }
+    .rename-actions { display: flex; gap: 8px; }
+    .rename-actions button { flex: 1; }
+
+    /* ── Mobile bottom navigation ────────────────────────────────────── */
+    .mobile-nav {
+      display: none;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 1000;
+      background: var(--surface); border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 20px rgba(13,17,23,.1);
+      padding: 6px 0 calc(6px + env(safe-area-inset-bottom));
+    }
+    .mobile-nav { display: none; justify-content: space-around; align-items: center; }
+    .mobile-nav-btn {
+      display: flex; flex-direction: column; align-items: center; gap: 3px;
+      padding: 6px 10px; background: none; border: none; cursor: pointer;
+      border-radius: 10px; transition: .13s; min-height: unset; flex: 1;
+    }
+    .mobile-nav-btn:hover, .mobile-nav-btn.active { background: var(--primary-s); }
+    .mobile-nav-btn.active .mnb-icon { filter: none; }
+    .mnb-icon { font-size: 20px; line-height: 1; }
+    .mnb-label { font-size: 10px; font-weight: 700; color: var(--text-3); white-space: nowrap; }
+    .mobile-nav-btn.active .mnb-label { color: var(--primary); }
+    .mobile-nav-btn#scanNavBtn .mnb-icon { font-size: 22px; }
+
+    /* OCR loading spinner */
+    .ocr-spinner {
+      display: none; width: 22px; height: 22px; border-radius: 50%;
+      border: 2.5px solid var(--border-2); border-top-color: var(--primary);
+      animation: spin .7s linear infinite; flex-shrink: 0;
+    }
+    .ocr-spinner.visible { display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* OCR editable raw text box */
+    .ocr-raw-edit {
+      font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--text);
+      background: var(--surface-2); border: 1.5px solid var(--border-2);
+      border-radius: 8px; padding: 10px 12px; width: 100%;
+      min-height: 100px; max-height: 180px; resize: vertical; line-height: 1.6;
+      display: none;
+    }
+    .ocr-raw-edit.open { display: block; }
+    .ocr-reparse-btn {
+      font-size: 12px; font-weight: 700; color: var(--primary);
+      background: var(--primary-s); border: 1.5px solid #c5cff6;
+      border-radius: 8px; padding: 6px 12px; display: none; min-height: unset;
+    }
+    .ocr-reparse-btn.visible { display: inline-flex; align-items: center; gap: 5px; }
+    .ocr-reparse-btn:hover { background: #d8e0ff; }
+
+    /* Auto-load badge */
+    .autoload-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      background: var(--green-s); color: var(--green);
+      border: 1.5px solid #a7f0d0; border-radius: 999px;
+      font-size: 11px; font-weight: 700; padding: 3px 10px;
+      animation: fadeIn .4s ease;
+    }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+    /* Toast improvements */
+    .toast { min-width: 200px; max-width: 340px; }
+
+    @media (max-width: 768px) {
+      .mobile-nav { display: flex; }
+      .main-wrap { padding: 10px 10px 76px; }
+      .layout { grid-template-columns: 1fr; gap: 10px; }
+      .layout .col:last-child { order: -1; }
+      .step-card-body-inner { padding: 14px 16px; }
+      .session-manager { gap: 5px; }
+      .session-select { min-width: 90px; max-width: 140px; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+      .grid-3 .field:last-child { grid-column: span 2; }
+      .help-panel { max-width: 100%; }
+      .header-actions .btn-secondary:not(#resetBtn) { display: none; }
+    }
+    @media (max-width: 480px) {
+      .grid-2, .grid-3, .check-grid, .stats-row { grid-template-columns: 1fr; }
+      .grid-3 .field:last-child { grid-column: unset; }
+      .step-card-subtitle { display: none; }
+      .session-bar-inner { overflow-x: auto; flex-wrap: nowrap; }
+      .mobile-nav-btn { padding: 5px 6px; }
+      input, select { font-size: 16px !important; }
+    }
+    @media (max-width: 640px) {
+      input, select { min-height: 48px; font-size: 16px; }
+      .btn-primary { width: 100%; justify-content: center; }
+      .toolbar { flex-direction: column; }
+      .toolbar button { width: 100%; }
+      .input-row { flex-direction: column; }
+      .input-row input, .input-row button { width: 100%; }
+    }
+
+    /* ── Help modal ──────────────────────────────────────────────────── */
+    .help-overlay {
+      position: fixed; inset: 0; background: rgba(13,17,23,.55);
+      backdrop-filter: blur(4px); z-index: 3000;
+      display: flex; align-items: flex-start; justify-content: flex-end;
+      padding: 0;
+      opacity: 0; pointer-events: none; transition: opacity .22s ease;
+    }
+    .help-overlay.open { opacity: 1; pointer-events: all; }
+    .help-panel {
+      width: 100%; max-width: 420px; height: 100dvh;
+      background: var(--surface); overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+      transform: translateX(100%); transition: transform .28s cubic-bezier(.4,0,.2,1);
+      display: flex; flex-direction: column;
+    }
+    .help-overlay.open .help-panel { transform: translateX(0); }
+    .help-panel-head {
+      padding: 20px 22px 16px; border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--surface); z-index: 1;
+    }
+    .help-panel-title { font-family: 'Syne', sans-serif; font-size: 18px; font-weight: 800; color: var(--text); }
+    .help-close {
+      width: 32px; height: 32px; border-radius: 50%; background: var(--surface-2);
+      border: 1px solid var(--border); color: var(--text-2);
+      display: flex; align-items: center; justify-content: center; font-size: 18px;
+      cursor: pointer; min-height: unset; padding: 0; transition: .13s;
+    }
+    .help-close:hover { background: var(--red-s); color: var(--red); border-color: #ffc9c9; }
+    .help-tabs {
+      display: flex; border-bottom: 1px solid var(--border);
+      position: sticky; top: 65px; background: var(--surface); z-index: 1;
+    }
+    .help-tab {
+      flex: 1; padding: 12px 8px; font-size: 13px; font-weight: 700;
+      color: var(--text-3); background: none; border: none; border-bottom: 2.5px solid transparent;
+      cursor: pointer; transition: .13s; min-height: unset;
+    }
+    .help-tab.active { color: var(--primary); border-bottom-color: var(--primary); background: none; }
+    .help-tab:hover:not(.active) { color: var(--text-2); background: var(--surface-2); }
+    .help-body { padding: 20px 22px; flex: 1; }
+    .help-section { display: none; }
+    .help-section.active { display: block; }
+    .help-step {
+      display: flex; gap: 14px; margin-bottom: 22px; padding-bottom: 22px;
+      border-bottom: 1px solid var(--border);
+    }
+    .help-step:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    .help-step-num {
+      width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+      background: var(--primary); color: #fff;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; font-weight: 800; margin-top: 2px;
+    }
+    .help-step-body h4 { font-size: 14px; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .help-step-body p  { font-size: 13px; color: var(--text-2); line-height: 1.6; }
+    .help-step-body p + p { margin-top: 6px; }
+    .faq-item { margin-bottom: 16px; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+    .faq-q {
+      padding: 12px 14px; font-size: 13px; font-weight: 700; color: var(--text);
+      cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+      background: var(--surface-2); transition: .13s; user-select: none;
+    }
+    .faq-q:hover { background: var(--surface-3); }
+    .faq-q .faq-icon { font-size: 11px; transition: transform .2s; color: var(--text-3); }
+    .faq-item.open .faq-icon { transform: rotate(180deg); }
+    .faq-a {
+      display: none; padding: 12px 14px; font-size: 13px; color: var(--text-2);
+      line-height: 1.6; border-top: 1px solid var(--border); background: var(--surface);
+    }
+    .faq-item.open .faq-a { display: block; }
+
+    /* Help button */
+    .btn-help {
+      width: 36px; height: 36px; min-height: 36px; border-radius: 50%;
+      background: var(--surface-2); border: 1.5px solid var(--border-2);
+      color: var(--text-2); font-size: 16px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center; padding: 0;
+      transition: .15s; flex-shrink: 0;
+    }
+    .btn-help:hover { background: var(--primary-s); border-color: #c5cff6; color: var(--primary); }
+
+    /* ── Enhanced mobile ─────────────────────────────────────────────── */
+    @media (max-width: 768px) {
+      .layout { grid-template-columns: 1fr; gap: 12px; }
+      .layout .col:last-child { order: -1; }
+      .main-wrap { padding: 10px 10px 64px; }
+      .step-card-body-inner { padding: 14px 16px; }
+      .header-actions .btn-scan span { display: none; }
+      .session-manager { gap: 6px; }
+      .session-select { min-width: 100px; max-width: 160px; }
+      .session-bar-inner { gap: 8px; }
+      .grid-3 { grid-template-columns: 1fr 1fr; }
+      .grid-3 .field:last-child { grid-column: span 2; }
+    }
+    @media (max-width: 480px) {
+      .grid-2, .grid-3, .check-grid, .stats-row { grid-template-columns: 1fr; }
+      .grid-3 .field:last-child { grid-column: unset; }
+      .step-card-subtitle { display: none; }
+      .help-panel { max-width: 100%; }
+      .header-actions { gap: 4px; }
+      .header-actions .btn-secondary { display: none; } /* hide sample + reset on tiny screens */
+      .header-actions .btn-secondary#resetBtn { display: flex; } /* keep reset */
+      .session-bar-inner { flex-wrap: nowrap; overflow-x: auto; }
+    }
+    @media (max-width: 640px) {
+      input, select { min-height: 48px; font-size: 16px; }
+      .btn-primary { padding: 13px 20px; }
+      .input-row { flex-direction: column; }
+      .input-row input, .input-row button { width: 100%; }
+      .app-header { padding: 0 12px; }
+      .session-bar { padding: 8px 12px; }
+      .session-tax-bar { padding: 6px 12px; }
+    }
+
+    /* ── Dark mode overrides for hardcoded colours ───────────────────── */
+    [data-theme="dark"] .session-bar,
+    :root:not([data-theme="light"]) .session-bar { background: var(--surface-2); border-color: var(--border); }
+    [data-theme="dark"] #sessionTitleInput,
+    :root:not([data-theme="light"]) #sessionTitleInput { background: var(--surface-3); border-color: var(--border-2); }
+    [data-theme="dark"] .currency-selector select,
+    :root:not([data-theme="light"]) .currency-selector select { background: var(--surface-3); }
+    [data-theme="dark"] .session-tax-bar,
+    :root:not([data-theme="light"]) .session-tax-bar { background: var(--surface); border-color: var(--border); }
+    [data-theme="dark"] .settle-summary-box,
+    :root:not([data-theme="light"]) .settle-summary-box { background: var(--surface-2); border-color: var(--border); }
+    [data-theme="dark"] .accordion-head:hover,
+    :root:not([data-theme="light"]) .accordion-head:hover { background: var(--surface-3); }
+    [data-theme="dark"] .tpl-btn:hover,
+    :root:not([data-theme="light"]) .tpl-btn:hover { background: var(--primary-s); }
+    [data-theme="dark"] .check-item.checked-item,
+    :root:not([data-theme="light"]) .check-item.checked-item { background: var(--primary-s); border-color: var(--border-2); }
+    [data-theme="dark"] .badge-blue,
+    :root:not([data-theme="light"]) .badge-blue { border-color: var(--border-2); }
+    [data-theme="dark"] .btn-ghost,
+    :root:not([data-theme="light"]) .btn-ghost { border-color: var(--border-2); }
+    [data-theme="dark"] .ocr-adj-head:hover,
+    :root:not([data-theme="light"]) .ocr-adj-head:hover { background: var(--surface-3); }
+    [data-theme="dark"] .ocr-modal-head,
+    [data-theme="dark"] .ocr-modal-footer,
+    :root:not([data-theme="light"]) .ocr-modal-head,
+    :root:not([data-theme="light"]) .ocr-modal-footer { background: var(--surface); }
+    [data-theme="dark"] .export-option-icon.json,
+    :root:not([data-theme="light"]) .export-option-icon.json { background: var(--surface-3); }
+    @media (prefers-color-scheme: dark) {
+      :root:not([data-theme="light"]) .session-bar { background: var(--surface-2); border-color: var(--border); }
+    }
+
+    /* ── Dark mode toggle button ─────────────────────────────────────── */
+    .btn-theme {
+      background: none;
+      border: 1.5px solid var(--border-2);
+      color: var(--text-2);
+      width: 36px; height: 36px; min-height: 36px;
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; padding: 0; flex-shrink: 0;
+      transition: .15s;
+    }
+    .btn-theme:hover { background: var(--surface-2); border-color: var(--primary); color: var(--primary); }
+
+    /* ── Export dropdown ─────────────────────────────────────────────── */
+    .export-wrap { position: relative; display: inline-flex; }
+    .export-menu {
+      position: absolute; top: calc(100% + 6px); right: 0;
+      background: var(--surface); border: 1.5px solid var(--border-2);
+      border-radius: 14px; box-shadow: var(--shadow-lg);
+      min-width: 220px; z-index: 500;
+      overflow: hidden;
+      opacity: 0; transform: translateY(-6px) scale(.97);
+      pointer-events: none;
+      transition: opacity .18s ease, transform .18s ease;
+    }
+    .export-menu.open { opacity: 1; transform: translateY(0) scale(1); pointer-events: all; }
+    .export-menu-title {
+      padding: 10px 14px 8px;
+      font-size: 10px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .09em; color: var(--text-3);
+      border-bottom: 1px solid var(--border);
+    }
+    .export-option {
+      display: flex; align-items: center; gap: 12px;
+      padding: 12px 14px; cursor: pointer; transition: .13s;
+      border: none; background: none; width: 100%; text-align: left;
+      font-family: inherit; min-height: 52px;
+    }
+    .export-option:hover { background: var(--surface-2); }
+    .export-option:last-child { border-top: 1px solid var(--border); }
+    .export-option-icon {
+      width: 34px; height: 34px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 17px;
+    }
+    .export-option-icon.json  { background: #fff7ed; }
+    .export-option-icon.txt   { background: var(--primary-s); }
+    .export-option-icon.copy  { background: var(--green-s); }
+    .export-option-body { display: flex; flex-direction: column; gap: 1px; }
+    .export-option-label { font-size: 13px; font-weight: 700; color: var(--text); }
+    .export-option-desc  { font-size: 11px; font-weight: 500; color: var(--text-3); line-height: 1.4; }
+
+    /* ── Session tax/tip bar ─────────────────────────────────────────── */
+    .session-tax-bar {
+      background: var(--surface-2);
+      border-bottom: 1px solid var(--border);
+      padding: 8px 24px;
+    }
+    .session-tax-inner {
+      max-width: 1280px; margin: 0 auto;
+      display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
+    }
+    .session-tax-label {
+      font-size: 11px; font-weight: 800; color: var(--text-3);
+      text-transform: uppercase; letter-spacing: .07em; white-space: nowrap;
+      display: flex; align-items: center; gap: 5px;
+    }
+    .session-tax-label .tax-icon { font-size: 14px; }
+    .tax-chip-row { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+    .tax-chip {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 999px; border: 1.5px solid;
+      font-size: 11px; font-weight: 700; cursor: pointer; transition: .13s;
+    }
+    .tax-chip.tax-type  { background: var(--yellow-s); color: var(--yellow);  border-color: #fde68a; }
+    .tax-chip.disc-type { background: var(--green-s);  color: var(--green);   border-color: #a7f0d0; }
+    .tax-chip:hover { filter: brightness(.93); }
+    .tax-chip .chip-x  { font-size: 13px; font-weight: 400; line-height: 1; margin-left: 2px; }
+    .tax-add-btn {
+      padding: 4px 10px; border-radius: 999px; border: 1.5px dashed var(--border-2);
+      font-size: 11px; font-weight: 700; color: var(--text-3); background: transparent;
+      cursor: pointer; transition: .13s; min-height: unset;
+    }
+    .tax-add-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-s); }
+    /* Tax add popover */
+    .tax-popover {
+      position: fixed; z-index: 800;
+      background: var(--surface); border: 1.5px solid var(--border-2);
+      border-radius: 14px; box-shadow: var(--shadow-lg);
+      padding: 14px 16px; min-width: 240px;
+      display: none;
+    }
+    .tax-popover.open { display: block; }
+    .tax-popover-title { font-size: 12px; font-weight: 800; color: var(--text-2); margin-bottom: 10px; }
+    .tax-popover .tp-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .tax-popover .tp-row select,
+    .tax-popover .tp-row input { padding: 7px 10px; font-size: 13px; min-height: unset; }
+    .tax-popover .tp-row select { width: 110px; flex-shrink: 0; }
+    .tax-popover .tp-mode { display: flex; gap: 4px; margin-bottom: 10px; }
+    .tax-popover .tp-mode button {
+      flex: 1; padding: 6px 8px; font-size: 12px; border-radius: 7px;
+      border: 1.5px solid var(--border-2); background: var(--surface-2); color: var(--text-2);
+      min-height: unset;
+    }
+    .tax-popover .tp-mode button.active { background: var(--primary-s); color: var(--primary); border-color: #c5cff6; }
+    .tax-popover .tp-actions { display: flex; gap: 6px; }
+    .tax-popover .tp-actions button { flex: 1; min-height: unset; padding: 8px; font-size: 13px; }
+
+    /* ── OCR / Scan Receipt ──────────────────────────────────────────── */
+
+    /* wider modal for the richer review UI */
+    .ocr-modal { max-width: 680px !important; }
+
+    /* Scan button in header */
+    .btn-scan {
+      background: linear-gradient(135deg, #3b5bdb 0%, #7048e8 100%);
+      color: #fff;
+      padding: 8px 14px;
+      font-size: 13px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 4px 12px rgba(112,72,232,.35);
+      display: flex; align-items: center; gap: 6px;
+    }
+    .btn-scan:hover { opacity: .9; transform: translateY(-1px); }
+
+    /* Modal overlay */
+    .ocr-overlay {
+      position: fixed; inset: 0;
+      background: rgba(13,17,23,.6);
+      backdrop-filter: blur(4px);
+      z-index: 2000;
+      display: flex; align-items: center; justify-content: center;
+      padding: 16px;
+      opacity: 0; pointer-events: none;
+      transition: opacity .22s ease;
+    }
+    .ocr-overlay.open { opacity: 1; pointer-events: all; }
+
+    .ocr-modal {
+      background: var(--surface);
+      border-radius: 20px;
+      box-shadow: var(--shadow-lg);
+      width: 100%; max-width: 560px;
+      max-height: 90vh;
+      overflow-y: auto;
+      display: flex; flex-direction: column;
+      transform: translateY(16px) scale(.98);
+      transition: transform .22s ease;
+    }
+    .ocr-overlay.open .ocr-modal { transform: translateY(0) scale(1); }
+
+    .ocr-modal-head {
+      padding: 20px 22px 16px;
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; background: var(--surface);
+      border-radius: 20px 20px 0 0; z-index: 1;
+    }
+    .ocr-modal-title {
+      font-family: 'Syne', sans-serif;
+      font-size: 18px; font-weight: 800; color: var(--text);
+      display: flex; align-items: center; gap: 8px;
+    }
+    .ocr-close-btn {
+      background: var(--surface-2); border: 1px solid var(--border);
+      color: var(--text-2); width: 32px; height: 32px;
+      border-radius: 50%; font-size: 18px; font-weight: 400;
+      display: flex; align-items: center; justify-content: center;
+      line-height: 1; padding: 0;
+    }
+    .ocr-close-btn:hover { background: var(--red-s); color: var(--red); border-color: #ffc9c9; }
+
+    .ocr-modal-body { padding: 20px 22px; display: flex; flex-direction: column; gap: 18px; }
+
+    /* Upload zone */
+    .ocr-upload-zone {
+      border: 2px dashed var(--border-2);
+      border-radius: 14px;
+      padding: 32px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: .18s ease;
+      position: relative;
+      background: var(--surface-2);
+    }
+    .ocr-upload-zone:hover, .ocr-upload-zone.drag-over {
+      border-color: var(--primary);
+      background: var(--primary-s);
+    }
+    .ocr-upload-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; height: 100%;
+      border: none; background: none; padding: 0;
+    }
+    .ocr-upload-zone input[type="file"]:focus { box-shadow: none; }
+    .ocr-upload-icon { font-size: 36px; margin-bottom: 10px; line-height: 1; }
+    .ocr-upload-text { font-size: 14px; font-weight: 700; color: var(--text); margin-bottom: 4px; }
+    .ocr-upload-sub { font-size: 12px; color: var(--text-3); }
+    .ocr-upload-sub span { color: var(--primary); font-weight: 700; }
+
+    /* Preview image */
+    .ocr-preview-wrap {
+      display: none;
+      border-radius: 12px; overflow: hidden;
+      border: 1px solid var(--border);
+      position: relative;
+    }
+    .ocr-preview-wrap.has-img { display: block; }
+    .ocr-preview-wrap img {
+      width: 100%; max-height: 240px;
+      object-fit: contain; background: #f0f0f0; display: block;
+    }
+    .ocr-preview-change {
+      position: absolute; top: 8px; right: 8px;
+      background: rgba(13,17,23,.7); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 5px 10px; font-size: 12px; font-weight: 700;
+    }
+    .ocr-preview-change:hover { background: rgba(13,17,23,.9); transform: none; }
+
+    /* Language toggle */
+    .ocr-lang-row {
+      display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+    }
+    .ocr-lang-row label { font-size: 12px; font-weight: 700; color: var(--text-2); white-space: nowrap; }
+    .ocr-lang-row select { width: auto; flex: 1; min-width: 160px; padding: 8px 12px; font-size: 13px; }
+
+    /* Progress */
+    .ocr-progress { display: none; flex-direction: column; gap: 8px; }
+    .ocr-progress.visible { display: flex; }
+    .ocr-progress-bar-wrap {
+      height: 6px; background: var(--border); border-radius: 999px; overflow: hidden;
+    }
+    .ocr-progress-bar {
+      height: 100%; width: 0%; background: linear-gradient(90deg, var(--primary), #7048e8);
+      border-radius: 999px; transition: width .3s ease;
+    }
+    .ocr-progress-label { font-size: 12px; font-weight: 600; color: var(--text-2); }
+
+    /* Scan button */
+    .ocr-scan-action {
+      display: flex; gap: 10px; flex-wrap: wrap;
+    }
+    #ocrScanBtn {
+      flex: 1;
+      background: linear-gradient(135deg, #3b5bdb 0%, #7048e8 100%);
+      color: #fff; padding: 12px 18px; font-size: 14px;
+      border-radius: var(--radius-sm);
+      box-shadow: 0 4px 14px rgba(59,91,219,.3);
+    }
+    #ocrScanBtn:hover:not(:disabled) { opacity: .9; transform: translateY(-1px); }
+    #ocrScanBtn:disabled { opacity: .45; }
+
+    /* Results panel */
+    .ocr-results { display: none; flex-direction: column; gap: 14px; }
+    .ocr-results.visible { display: flex; }
+
+    .ocr-results-head {
+      display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;
+    }
+    .ocr-results-title {
+      font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 800; color: var(--text);
+    }
+    .ocr-total-check {
+      font-size: 12px; font-weight: 700; padding: 4px 10px;
+      border-radius: 999px;
+    }
+    .ocr-total-check.match { background: var(--green-s); color: var(--green); border: 1px solid #b2f2bb; }
+    .ocr-total-check.mismatch { background: var(--yellow-s); color: var(--yellow); border: 1px solid #ffd97d; }
+    .ocr-total-check.no-total { background: var(--surface-2); color: var(--text-3); border: 1px solid var(--border); }
+
+    .ocr-item-list { display: flex; flex-direction: column; gap: 0; border: 1px solid var(--border); border-radius: var(--radius-sm); overflow: hidden; }
+
+    /* ── LINE-style item card ── */
+    .ocr-item-row {
+      display: flex; align-items: center; gap: 0;
+      background: var(--surface); transition: background .12s;
+      border-bottom: 1px solid var(--border);
+      min-height: 64px;
+    }
+    .ocr-item-row:last-child { border-bottom: none; }
+    .ocr-item-row:hover { background: var(--surface-2); }
+
+    /* left: item info (name + price) */
+    .ocr-item-info {
+      flex: 1; min-width: 0; padding: 10px 12px; display: flex; flex-direction: column; gap: 3px;
+    }
+    .ocr-item-info input[type="text"] {
+      border: none; background: transparent; padding: 0;
+      font-size: 14px; font-weight: 700; color: var(--text);
+      width: 100%; outline: none;
+    }
+    .ocr-item-info input[type="text"]:focus { color: var(--primary); }
+    .ocr-item-price-row { display: flex; align-items: center; gap: 6px; }
+    .ocr-item-info input[type="number"] {
+      border: none; background: transparent; padding: 0;
+      font-size: 13px; font-weight: 700; color: var(--text-2);
+      font-family: 'JetBrains Mono', monospace;
+      width: 80px; outline: none;
+    }
+    .ocr-item-info input[type="number"]:focus { color: var(--primary); }
+    .ocr-item-adj-tag {
+      font-size: 10px; font-weight: 700; padding: 1px 6px;
+      border-radius: 999px; display: none;
+    }
+    .ocr-item-adj-tag.show { display: inline-block; }
+    .ocr-item-adj-tag.up   { background: var(--yellow-s); color: var(--yellow); }
+    .ocr-item-adj-tag.down { background: var(--green-s);  color: var(--green); }
+
+    /* right: avatar strip + delete */
+    .ocr-item-right {
+      display: flex; align-items: center; gap: 6px;
+      padding: 10px 10px 10px 4px; flex-shrink: 0;
+    }
+
+    /* Avatar bubbles — the LINE-style assignee circles */
+    .ocr-avatars {
+      display: flex; align-items: center;
+      /* overlapping stack, newest on right */
+    }
+    .ocr-avatar {
+      width: 30px; height: 30px; border-radius: 50%;
+      border: 2px solid var(--surface);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 11px; font-weight: 800;
+      cursor: pointer; transition: transform .13s, opacity .13s, border-color .13s;
+      user-select: none; flex-shrink: 0;
+      margin-left: -6px; position: relative;
+      /* colour set inline per person */
+    }
+    .ocr-avatars .ocr-avatar:first-child { margin-left: 0; }
+    .ocr-avatar:hover { transform: scale(1.15); z-index: 2; }
+    /* Dimmed = not assigned to this item */
+    .ocr-avatar.unassigned {
+      opacity: .28; filter: grayscale(.8);
+      border-color: var(--border);
+    }
+    .ocr-avatar.unassigned:hover { opacity: .6; filter: grayscale(.3); }
+
+    /* Delete */
+    .ocr-item-delete {
+      background: none; color: var(--text-3); border: none;
+      width: 22px; height: 22px; border-radius: 50%; font-size: 16px;
+      display: flex; align-items: center; justify-content: center;
+      padding: 0; flex-shrink: 0; line-height: 1;
+    }
+    .ocr-item-delete:hover { background: var(--red-s); color: var(--red); transform: none; }
+
+    /* ── People bar at top of results ── */
+    .ocr-people-bar {
+      background: var(--surface-2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 12px 14px;
+      display: flex; flex-direction: column; gap: 8px;
+    }
+    .ocr-people-bar-title {
+      font-size: 11px; font-weight: 800; text-transform: uppercase;
+      letter-spacing: .07em; color: var(--text-3);
+    }
+    .ocr-people-bar-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .ocr-person-chip {
+      display: flex; align-items: center; gap: 6px;
+      padding: 5px 10px 5px 6px; border-radius: 999px;
+      font-size: 12px; font-weight: 700; color: var(--text);
+      background: var(--surface); border: 1.5px solid var(--border);
+      cursor: pointer; transition: .13s; user-select: none;
+    }
+    .ocr-person-chip .chip-av {
+      width: 22px; height: 22px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px; font-weight: 800; flex-shrink: 0;
+    }
+    .ocr-person-chip:hover { border-color: var(--border-2); background: var(--surface-2); }
+    /* "Assign all" action pills */
+    .ocr-assignall-btn {
+      padding: 5px 12px; border-radius: 999px; font-size: 12px; font-weight: 700;
+      cursor: pointer; transition: .13s; border: 1.5px solid;
+    }
+    .ocr-assignall-btn.all {
+      background: var(--primary-s); color: var(--primary); border-color: #c5cff6;
+    }
+    .ocr-assignall-btn.all:hover { background: #d8e0ff; }
+    .ocr-assignall-btn.solo {
+      background: var(--surface); color: var(--text-2); border-color: var(--border);
+    }
+    .ocr-assignall-btn.solo:hover { background: var(--surface-2); border-color: var(--border-2); }
+
+    /* ── Tax / Discount section ── */
+    .ocr-adjustments {
+      border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+      overflow: hidden;
+    }
+    .ocr-adj-head {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 14px; background: var(--surface-2);
+      cursor: pointer; user-select: none; transition: .14s;
+    }
+    .ocr-adj-head:hover { background: #eceff5; }
+    .ocr-adj-head-left {
+      display: flex; align-items: center; gap: 8px;
+      font-size: 13px; font-weight: 700; color: var(--text-2);
+    }
+    .ocr-adj-badge {
+      font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 999px;
+      background: var(--primary-s); color: var(--primary); border: 1px solid #c5cff6;
+    }
+    .ocr-adj-badge.has-adj { background: var(--yellow-s); color: var(--yellow); border-color: #ffd97d; }
+    .ocr-adj-arrow { font-size: 11px; transition: .2s; color: var(--text-3); }
+    .ocr-adjustments.open .ocr-adj-arrow { transform: rotate(180deg); }
+    .ocr-adj-body {
+      display: none; padding: 12px 14px;
+      border-top: 1px solid var(--border); background: var(--surface);
+    }
+    .ocr-adjustments.open .ocr-adj-body { display: block; }
+    .ocr-adj-rows { display: flex; flex-direction: column; gap: 8px; margin-bottom: 10px; }
+    .ocr-adj-row { display: flex; align-items: center; gap: 8px; }
+    .ocr-adj-row select {
+      width: 110px; flex-shrink: 0; padding: 6px 9px; font-size: 12px; border-radius: 8px;
+      border: 1px solid var(--border-2); background: var(--surface-2);
+    }
+    .ocr-adj-row input[type="text"] {
+      flex: 1; min-width: 0; padding: 6px 9px; font-size: 12px; border-radius: 8px;
+      border: 1px solid var(--border-2); background: var(--surface-2); font-weight: 600;
+    }
+    .ocr-adj-row input[type="number"] {
+      width: 86px; flex-shrink: 0; padding: 6px 9px; font-size: 12px; border-radius: 8px;
+      border: 1px solid var(--border-2); background: var(--surface-2); font-weight: 700;
+      font-family: 'JetBrains Mono', monospace; text-align: right;
+    }
+    .ocr-adj-row input:focus, .ocr-adj-row select:focus {
+      border-color: var(--primary); background: #fff; box-shadow: 0 0 0 3px var(--primary-t);
+    }
+    .ocr-adj-row .ocr-adj-del {
+      background: var(--red-s); color: var(--red); border: 1px solid #ffc9c9;
+      width: 26px; height: 26px; border-radius: 7px; font-size: 14px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; padding: 0; font-weight: 400;
+    }
+    .ocr-adj-row .ocr-adj-del:hover { background: #ffd5d5; transform: none; }
+    .ocr-adj-add-btn {
+      font-size: 12px; font-weight: 700; color: var(--primary);
+      background: var(--primary-s); border: 1px dashed #c5cff6;
+      border-radius: var(--radius-sm); padding: 6px 12px;
+    }
+    .ocr-adj-add-btn:hover { background: #d8e0ff; }
+    .ocr-adj-hint { font-size: 11px; color: var(--text-3); margin-top: 8px; line-height: 1.5; }
+
+    /* Adjusted totals summary */
+    .ocr-adj-summary {
+      display: flex; flex-direction: column; gap: 4px;
+      padding: 8px 12px; background: var(--surface-2);
+      border: 1px solid var(--border); border-radius: var(--radius-sm);
+      font-size: 12px;
+    }
+    .ocr-adj-summary-row {
+      display: flex; justify-content: space-between; align-items: center;
+    }
+    .ocr-adj-summary-row .asr-label { font-weight: 600; color: var(--text-2); }
+    .ocr-adj-summary-row .asr-val { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--text); }
+    .ocr-adj-summary-row.asr-final .asr-label { color: var(--primary); font-weight: 800; }
+    .ocr-adj-summary-row.asr-final .asr-val   { color: var(--primary); font-size: 14px; }
+    .ocr-adj-summary-row.asr-tax  .asr-val { color: var(--yellow); }
+    .ocr-adj-summary-row.asr-disc .asr-val { color: var(--green); }
+
+    .ocr-add-row-btn {
+      align-self: flex-start;
+      background: var(--surface-2); color: var(--text-2);
+      border: 1px dashed var(--border-2); border-radius: var(--radius-sm);
+      padding: 7px 14px; font-size: 12px;
+    }
+    .ocr-add-row-btn:hover { border-color: var(--primary); color: var(--primary); background: var(--primary-s); }
+
+    /* Detected total row */
+    .ocr-detected-total {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px;
+      border: 1px solid var(--border-2); border-radius: var(--radius-sm);
+      background: var(--surface-2); font-size: 13px;
+    }
+    .ocr-detected-total .dt-label { font-weight: 700; color: var(--text-2); }
+    .ocr-detected-total .dt-value { font-family: 'JetBrains Mono', monospace; font-weight: 700; color: var(--text); }
+    .ocr-sum-row {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px;
+      border: 1px solid #c5cff6; border-radius: var(--radius-sm);
+      background: var(--primary-s); font-size: 13px;
+    }
+    .ocr-sum-row .dt-label { font-weight: 700; color: var(--primary); }
+    .ocr-sum-row .dt-value { font-family: 'JetBrains Mono', monospace; font-weight: 800; color: var(--primary); }
+
+    .ocr-modal-footer {
+      padding: 16px 22px 20px;
+      border-top: 1px solid var(--border);
+      display: flex; gap: 10px; flex-wrap: wrap;
+      position: sticky; bottom: 0; background: var(--surface);
+      border-radius: 0 0 20px 20px;
+    }
+    #ocrImportBtn {
+      flex: 1;
+      background: var(--primary); color: #fff;
+      padding: 12px 18px; font-size: 14px; border-radius: var(--radius-sm);
+      box-shadow: 0 4px 14px rgba(59,91,219,.3);
+    }
+    #ocrImportBtn:hover:not(:disabled) { background: var(--primary-h); transform: translateY(-1px); }
+    #ocrResetBtn {
+      background: var(--surface-2); color: var(--text-2);
+      border: 1px solid var(--border-2);
+      padding: 11px 16px; font-size: 13px; border-radius: var(--radius-sm);
+    }
+    #ocrResetBtn:hover { background: var(--red-s); color: var(--red); border-color: #ffc9c9; }
+
+    .ocr-raw-toggle {
+      font-size: 11px; font-weight: 700; color: var(--text-3);
+      background: none; border: none; padding: 0; text-decoration: underline;
+      align-self: flex-start; cursor: pointer;
+    }
+    .ocr-raw-toggle:hover { color: var(--primary); transform: none; }
+    .ocr-raw-text {
+      display: none; font-family: 'JetBrains Mono', monospace; font-size: 11px;
+      color: var(--text-2); background: var(--surface-2); padding: 10px 12px;
+      border-radius: 8px; border: 1px solid var(--border);
+      white-space: pre-wrap; word-break: break-all; max-height: 120px; overflow-y: auto;
+      line-height: 1.6;
+    }
+    .ocr-raw-text.open { display: block; }
+
+    .ocr-error-msg {
+      display: none; padding: 12px 14px; border-radius: var(--radius-sm);
+      background: var(--red-s); color: var(--red); border: 1px solid #ffc9c9;
+      font-size: 13px; font-weight: 700;
+    }
+    .ocr-error-msg.visible { display: block; }
+
+    .ocr-tip {
+      font-size: 12px; color: var(--text-3); display: flex; align-items: flex-start; gap: 6px;
+      line-height: 1.5;
+    }
+    .ocr-tip-icon { flex-shrink: 0; }
+
+    @media (max-width: 540px) {
+      .ocr-modal { max-height: 100vh; border-radius: 0; }
+      .ocr-overlay { padding: 0; align-items: flex-end; }
+      .ocr-modal-head { border-radius: 0; }
+      .ocr-modal-footer { border-radius: 0; }
+    }
+  </style>
+</head>
+<body>
+<div id="toast-wrap"></div>
+
+<header class="app-header" role="banner">
+  <div class="header-inner">
+    <div class="logo" aria-label="Split Bill Pro">
+      <div class="logo-icon" aria-hidden="true">💸</div>
+      <div class="logo-text">Split<span>Bill</span> <span style="font-size:11px;font-weight:600;color:var(--text-3);font-family:'Plus Jakarta Sans',sans-serif;letter-spacing:.02em">Pro</span></div>
+    </div>
+    <div class="header-actions" role="toolbar" aria-label="App actions">
+      <button class="btn-help" id="helpBtn" aria-label="Help and FAQ" title="Help & FAQ">?</button>
+      <button class="btn-theme" id="themeToggleBtn" aria-label="Toggle dark mode" title="Toggle dark / light mode">🌙</button>
+      <button class="btn-scan" id="openScanBtn" aria-label="Scan a receipt with camera or upload photo">📷 Scan Receipt</button>
+      <button class="btn-secondary btn-sm" id="sampleBtn" aria-label="Load sample data">Load sample</button>
+      <div class="export-wrap" id="exportWrap">
+        <button class="btn-secondary btn-sm" id="exportBtn" aria-haspopup="menu" aria-expanded="false" aria-label="Export options">⬇️ Export</button>
+        <div class="export-menu" id="exportMenu" role="menu" aria-label="Export options">
+          <div class="export-menu-title">Choose export format</div>
+          <button class="export-option" id="exportJsonBtn" role="menuitem">
+            <div class="export-option-icon json" aria-hidden="true">{ }</div>
+            <div class="export-option-body">
+              <span class="export-option-label">Export JSON</span>
+              <span class="export-option-desc">Full data backup — re-importable</span>
+            </div>
+          </button>
+          <button class="export-option" id="exportTxtBtn" role="menuitem">
+            <div class="export-option-icon txt" aria-hidden="true">📄</div>
+            <div class="export-option-body">
+              <span class="export-option-label">Export as Text</span>
+              <span class="export-option-desc">Settlement summary .txt file</span>
+            </div>
+          </button>
+          <button class="export-option" id="exportCopyBtn" role="menuitem">
+            <div class="export-option-icon copy" aria-hidden="true">📋</div>
+            <div class="export-option-body">
+              <span class="export-option-label">Copy to Clipboard</span>
+              <span class="export-option-desc">Paste into chat or notes</span>
+            </div>
+          </button>
+          <button class="export-option" id="importJsonBtn" role="menuitem">
+            <div class="export-option-icon json" aria-hidden="true">⬆️</div>
+            <div class="export-option-body">
+              <span class="export-option-label">Import JSON</span>
+              <span class="export-option-desc">Restore a previous backup</span>
+            </div>
+          </button>
+        </div>
+      </div>
+      <button class="btn-secondary btn-sm" id="resetBtn" style="color:var(--red);border-color:#ffc9c9" aria-label="Reset all data">Reset all</button>
+    </div>
+  </div>
+</header>
+
+<!-- ── Session bar ───────────────────────────────────────────────── -->
+<div class="session-bar">
+  <div class="session-bar-inner">
+    <span class="session-label">Session</span>
+    <input id="sessionTitleInput" placeholder="e.g. Taipei Trip, Dinner Night…" maxlength="60" />
+    <div class="currency-selector">
+      <label for="currencySelect">Currency:</label>
+      <select id="currencySelect">
+        <option value="TWD">TWD (NT$)</option>
+        <option value="USD">USD ($)</option>
+        <option value="IDR">IDR (Rp)</option>
+        <option value="EUR">EUR (€)</option>
+        <option value="JPY">JPY (¥)</option>
+        <option value="GBP">GBP (£)</option>
+        <option value="AUD">AUD (A$)</option>
+        <option value="CAD">CAD (C$)</option>
+        <option value="THB">THB (฿)</option>
+        <option value="SGD">SGD (S$)</option>
+        <option value="MYR">MYR (RM)</option>
+      </select>
+    </div>
+    <div class="session-stats">
+      <span class="session-stat">Total: <strong id="statTotal">0.00</strong></span>
+      <span class="session-stat">People: <strong id="statPeople">0</strong></span>
+      <span class="session-stat">Expenses: <strong id="statExpenses">0</strong></span>
+    </div>
+    <div class="session-manager" id="sessionManager">
+      <span class="session-manager-label">Saved:</span>
+      <select class="session-select" id="savedSessionSelect" aria-label="Saved sessions">
+        <option value="">— select session —</option>
+      </select>
+      <button class="btn-session load"   id="loadSessionBtn"   title="Load selected session">⬇ Load</button>
+      <button class="btn-session save"   id="saveSessionBtn"   title="Save current session">💾 Save</button>
+      <button class="btn-session rename" id="renameSessionBtn" title="Rename selected session">✏️</button>
+      <button class="btn-session del"    id="delSessionBtn"    title="Delete selected session">🗑</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Session tax/tip bar ────────────────────────────────────────── -->
+<div class="session-tax-bar" id="sessionTaxBar" aria-label="Session-wide tax and discounts">
+  <div class="session-tax-inner">
+    <span class="session-tax-label"><span class="tax-icon" aria-hidden="true">💰</span> Session Tax &amp; Tips</span>
+    <div class="tax-chip-row" id="taxChipRow">
+      <span style="font-size:11px;color:var(--text-3);font-style:italic" id="taxNoneHint">None applied</span>
+    </div>
+    <button class="tax-add-btn" id="taxAddBtn" aria-label="Add tax or tip to all expenses" aria-haspopup="true">+ Add</button>
+  </div>
+</div>
+<!-- Tax popover (positioned by JS) -->
+<div class="tax-popover" id="taxPopover" role="dialog" aria-label="Add session tax or tip">
+  <div class="tax-popover-title">Add session-wide adjustment</div>
+  <div class="tp-row">
+    <select id="taxTypeSelect" aria-label="Adjustment type">
+      <option value="tax">Tax / Service</option>
+      <option value="tip">Tip / Gratuity</option>
+      <option value="discount">Discount</option>
+    </select>
+    <input type="text" id="taxLabelInput" placeholder="Label (optional)" aria-label="Adjustment label" />
+  </div>
+  <div class="tp-mode">
+    <button class="active" id="taxModePct" aria-pressed="true">% Percent</button>
+    <button id="taxModeFlat" aria-pressed="false">Flat amount</button>
+  </div>
+  <div class="tp-row">
+    <input type="number" id="taxValueInput" min="0" step="0.01" placeholder="e.g. 10" aria-label="Adjustment value" style="flex:1" />
+  </div>
+  <div class="tp-actions">
+    <button class="btn-primary" id="taxApplyBtn">Apply</button>
+    <button class="btn-secondary" id="taxCancelBtn">Cancel</button>
+  </div>
+</div>
+
+<!-- ── Main ──────────────────────────────────────────────────────── -->
+<div class="main-wrap" role="main">
+  <div class="layout">
+
+    <!-- ── LEFT COLUMN ──────────────────────────────────────────── -->
+    <div class="col" role="region" aria-label="Expense entry">
+
+      <!-- Step 1: Add participants (open by default) -->
+      <section class="card step-card" id="stepCard1" aria-labelledby="step1-title">
+        <div class="step-card-head open" id="stepHead1" role="button" tabindex="0" aria-expanded="true" aria-controls="stepBody1">
+          <div class="step-card-head-left">
+            <div class="step-num" id="stepNum1">1</div>
+            <div class="step-card-head-info">
+              <div class="step-card-title" id="step1-title">Add participants</div>
+              <div class="step-card-subtitle">Name each person splitting the bill</div>
+            </div>
+          </div>
+          <div class="step-card-right">
+            <span class="badge badge-blue" id="peopleBadge" aria-live="polite">0 people</span>
+            <div class="step-chevron" aria-hidden="true">▾</div>
+          </div>
+        </div>
+        <div class="step-card-body open" id="stepBody1">
+          <div class="step-card-body-inner stack">
+          <div class="stack" style="gap:8px">
+            <div style="display:flex;gap:8px;flex-wrap:wrap">
+              <div class="field" style="flex:1;min-width:140px" id="personNameField">
+                <input id="personName" placeholder="Name, e.g. Alice" maxlength="40" aria-label="Participant name" autocomplete="off" />
+                <span class="field-error-msg" id="personNameErr"></span>
+              </div>
+              <div class="field" style="flex:1.4;min-width:160px">
+                <input id="personBank" placeholder="Bank / account no. (optional)" maxlength="80" aria-label="Bank account" />
+              </div>
+              <button class="btn-primary" id="addPersonBtn" style="white-space:nowrap;align-self:flex-start;margin-top:0" aria-label="Add participant">+ Add</button>
+            </div>
+          </div>
+          <div id="peopleList" class="pills-row"></div>
+          <div id="peopleEmpty" class="empty-state">
+            <strong>No one here yet</strong>
+            <p>Add at least 2 people to start splitting expenses.</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 2: Add expense -->
+      <section class="card step-card" id="stepCard2">
+        <div class="step-card-head" id="stepHead2" role="button" tabindex="0" aria-expanded="false" aria-controls="stepBody2">
+          <div class="step-card-head-left">
+            <div class="step-num" id="stepNum2">2</div>
+            <div class="step-card-head-info">
+              <div class="step-card-title">Add an expense</div>
+              <div class="step-card-subtitle">Enter amount, who paid, and how to split</div>
+            </div>
+          </div>
+          <div class="step-card-right">
+            <span class="badge badge-blue" style="font-size:10px">Equal split</span>
+            <div class="step-chevron" aria-hidden="true">▾</div>
+          </div>
+        </div>
+        <div class="step-card-body" id="stepBody2">
+          <div class="step-card-body-inner stack">
+
+          <!-- Quick templates -->
+          <div>
+            <div class="hint" style="margin-bottom:8px">Quick fill:</div>
+            <div class="templates-row">
+              <button class="tpl-btn" data-template="dinner">🍽️ Dinner</button>
+              <button class="tpl-btn" data-template="taxi">🚕 Taxi</button>
+              <button class="tpl-btn" data-template="groceries">🛒 Groceries</button>
+              <button class="tpl-btn" data-template="hotel">🏨 Hotel</button>
+              <button class="tpl-btn" data-template="drinks">🍺 Drinks</button>
+              <button class="tpl-btn" data-template="trip">✈️ Airfare</button>
+            </div>
+          </div>
+
+          <div class="grid-3">
+            <div class="field" id="expenseTitleField">
+              <label class="field-label">Expense name</label>
+              <input id="expenseTitle" placeholder="e.g. Dinner, Taxi, Drinks" />
+              <span class="field-error-msg" id="expenseTitleErr"></span>
+            </div>
+            <div class="field" id="expenseAmountField">
+              <label class="field-label">Amount</label>
+              <input id="expenseAmount" type="number" step="0.01" min="0" placeholder="0.00" />
+              <span class="field-error-msg" id="expenseAmountErr"></span>
+            </div>
+            <div class="field">
+              <label class="field-label">Paid by</label>
+              <select id="expensePaidBy"></select>
+            </div>
+          </div>
+
+          <div class="grid-2">
+            <div class="field">
+              <label class="field-label">Category</label>
+              <select id="expenseCategory">
+                <option value="other">🗂️ Other</option>
+                <option value="food">🍽️ Food</option>
+                <option value="transport">🚕 Transport</option>
+                <option value="groceries">🛒 Groceries</option>
+                <option value="shopping">🛍️ Shopping</option>
+                <option value="accommodation">🏨 Accommodation</option>
+                <option value="entertainment">🎉 Entertainment</option>
+              </select>
+            </div>
+            <div class="field">
+              <label class="field-label">Note <span class="text-muted">(optional)</span></label>
+              <input id="expenseNote" placeholder="e.g. at Blue Elephant" />
+            </div>
+          </div>
+
+          <div class="field">
+            <label class="field-label">Split among <span class="hint" style="display:inline;margin-left:6px">— all selected by default ✓</span></label>
+            <div id="participantsBox" class="check-grid"></div>
+          </div>
+
+          <!-- Advanced split accordion -->
+          <div class="accordion" id="advancedAccordion">
+            <div class="accordion-head" id="advancedToggle">
+              <span>Advanced: Custom / Percentage split</span>
+              <span class="accordion-arrow">▾</span>
+            </div>
+            <div class="accordion-body">
+              <div class="stack">
+                <div class="grid-2">
+                  <div class="field">
+                    <label class="field-label">Split mode</label>
+                    <select id="splitMode">
+                      <option value="equal">Equal split</option>
+                      <option value="custom">Custom amount</option>
+                      <option value="percent">Percentage</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label class="field-label">Rounding</label>
+                    <select id="roundingRule">
+                      <option value="nearest">Nearest</option>
+                      <option value="up">Round up</option>
+                      <option value="down">Round down</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="sharesEditor" class="stack"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="toolbar">
+            <button class="btn-primary" id="addExpenseBtn">Add expense</button>
+            <button class="btn-secondary" id="clearFormBtn">Clear form</button>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Step 3: Expense list -->
+      <section class="card step-card" id="stepCard3">
+        <div class="step-card-head" id="stepHead3" role="button" tabindex="0" aria-expanded="false" aria-controls="stepBody3">
+          <div class="step-card-head-left">
+            <div class="step-num" id="stepNum3">3</div>
+            <div class="step-card-head-info">
+              <div class="step-card-title">Expenses recorded</div>
+              <div class="step-card-subtitle">Review, edit or delete entries</div>
+            </div>
+          </div>
+          <div class="step-card-right">
+            <span class="badge badge-blue" id="expenseBadge">0 expenses</span>
+            <div class="step-chevron" aria-hidden="true">▾</div>
+          </div>
+        </div>
+        <div class="step-card-body" id="stepBody3">
+          <div class="step-card-body-inner">
+          <div class="filter-bar">
+            <input id="searchInput" placeholder="🔍 Search…" />
+            <select id="filterCategory">
+              <option value="">All categories</option>
+              <option value="food">🍽️ Food</option>
+              <option value="transport">🚕 Transport</option>
+              <option value="groceries">🛒 Groceries</option>
+              <option value="shopping">🛍️ Shopping</option>
+              <option value="accommodation">🏨 Accommodation</option>
+              <option value="entertainment">🎉 Entertainment</option>
+              <option value="other">🗂️ Other</option>
+            </select>
+            <select id="filterPayer">
+              <option value="">All payers</option>
+            </select>
+          </div>
+          <div id="expenseList" class="expense-list"></div>
+          <div id="expenseEmpty" class="empty-state">
+            <strong>No expenses yet</strong>
+            <p>Add your first shared expense above.</p>
+          </div>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- ── RIGHT COLUMN ──────────────────────────────────────────── -->
+    <div class="col">
+
+      <!-- Settlement (open by default) -->
+      <section class="card step-card" id="stepCardSettle">
+        <div class="step-card-head open" id="stepHeadSettle" role="button" tabindex="0" aria-expanded="true" aria-controls="stepBodySettle">
+          <div class="step-card-head-left">
+            <div class="step-num done">✓</div>
+            <div class="step-card-head-info">
+              <div class="step-card-title">Settle up</div>
+              <div class="step-card-subtitle">Who pays whom — minimum transactions</div>
+            </div>
+          </div>
+          <div class="step-card-right">
+            <button class="btn-ghost btn-sm" id="copySettlementBtn" onclick="event.stopPropagation()">📋 Copy</button>
+            <div class="step-chevron" aria-hidden="true">▾</div>
+          </div>
+        </div>
+        <div class="step-card-body open" id="stepBodySettle">
+          <div class="step-card-body-inner">
+          <div class="settle-summary-box">
+            <div class="ssb-title">Who pays whom?</div>
+            <div class="ssb-sub">Minimum transactions to settle fairly. Total: <span class="settle-total" id="settleTotalDisplay">NT$0</span> <span id="settleAdjBadge" style="display:none;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--yellow-s);color:var(--yellow);border:1px solid #fde68a;margin-left:4px"></span></div>
+          </div>
+          <div class="settle-list" id="settlementList"></div>
+          <div id="settlementEmpty" class="empty-state">
+            <strong>Nothing to settle yet</strong>
+            <p>Add people and expenses, then your settlement will appear here.</p>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Stats -->
+      <section class="card step-card" id="stepCardStats">
+        <div class="step-card-head open" id="stepHeadStats" role="button" tabindex="0" aria-expanded="true" aria-controls="stepBodyStats">
+          <div class="step-card-head-left">
+            <div class="step-num" style="background:var(--purple-s);color:var(--purple);border-color:#c4b5fd">📊</div>
+            <div class="step-card-head-info">
+              <div class="step-card-title">Summary stats</div>
+            </div>
+          </div>
+          <div class="step-card-right">
+            <div class="step-chevron" aria-hidden="true">▾</div>
+          </div>
+        </div>
+        <div class="step-card-body open" id="stepBodyStats">
+          <div class="step-card-body-inner">
+          <div class="stats-row">
+            <div class="stat-box">
+              <div class="sk">Total paid</div>
+              <div class="sv" id="statTotalCard">0.00</div>
+            </div>
+            <div class="stat-box">
+              <div class="sk">People</div>
+              <div class="sv" id="statPeopleCard">0</div>
+            </div>
+            <div class="stat-box">
+              <div class="sk">Expenses</div>
+              <div class="sv" id="statExpensesCard">0</div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Balances -->
+      <section class="card step-card" id="stepCardBal">
+        <div class="step-card-head open" id="stepHeadBal" role="button" tabindex="0" aria-expanded="true" aria-controls="stepBodyBal">
+          <div class="step-card-head-left">
+            <div class="step-num" style="background:var(--green-s);color:var(--green);border-color:#a7f0d0">⚖️</div>
+            <div class="step-card-head-info">
+              <div class="step-card-title">Balance per person</div>
+              <div class="step-card-subtitle">Who paid more or less than their share</div>
+            </div>
+          </div>
+          <div class="step-card-right">
+            <div class="step-chevron" aria-hidden="true">▾</div>
+          </div>
+        </div>
+        <div class="step-card-body open" id="stepBodyBal">
+          <div class="step-card-body-inner">
+          <div id="balanceList" class="balance-list"></div>
+          <div id="balanceEmpty" class="empty-state" style="display:none">
+            <strong>No data yet</strong>
+            <p>Add people and expenses first.</p>
+          </div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- /right col -->
+  </div><!-- /layout -->
+
+  <div style="text-align:center;margin-top:24px;font-size:12px;color:var(--text-3);font-weight:600;padding-bottom:80px">
+    Data saved locally in your browser · Split Bill Pro
+  </div>
+</div>
+
+<!-- ── Mobile bottom navigation ─────────────────────────────────── -->
+<nav class="mobile-nav" id="mobileNav" aria-label="Quick navigation">
+  <button class="mobile-nav-btn" data-scroll-to="stepCard1" aria-label="Participants">
+    <span class="mnb-icon">👥</span>
+    <span class="mnb-label">People</span>
+  </button>
+  <button class="mobile-nav-btn" data-scroll-to="stepCard2" aria-label="Add expense">
+    <span class="mnb-icon">➕</span>
+    <span class="mnb-label">Expense</span>
+  </button>
+  <button class="mobile-nav-btn" data-scroll-to="stepCard3" aria-label="Expenses list">
+    <span class="mnb-icon">📋</span>
+    <span class="mnb-label">List</span>
+  </button>
+  <button class="mobile-nav-btn" id="scanNavBtn" aria-label="Scan receipt">
+    <span class="mnb-icon">📷</span>
+    <span class="mnb-label">Scan</span>
+  </button>
+  <button class="mobile-nav-btn" data-scroll-to="stepCardSettle" aria-label="Settle up">
+    <span class="mnb-icon">💸</span>
+    <span class="mnb-label">Settle</span>
+  </button>
+</nav>
+
+<!-- ── Session rename modal ──────────────────────────────────────── -->
+<div class="rename-overlay" id="renameOverlay" role="dialog" aria-modal="true" aria-label="Rename session">
+  <div class="rename-modal">
+    <div class="rename-title">Rename session</div>
+    <input id="renameInput" class="rename-input" placeholder="New session name" maxlength="60" />
+    <div class="rename-actions">
+      <button class="btn-primary" id="renameConfirmBtn">Rename</button>
+      <button class="btn-secondary" id="renameCancelBtn">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Help & FAQ Panel ──────────────────────────────────────────── -->
+<div class="help-overlay" id="helpOverlay" role="dialog" aria-modal="true" aria-label="Help and FAQ">
+  <div class="help-panel" id="helpPanel">
+    <div class="help-panel-head">
+      <div class="help-panel-title">📖 Help &amp; FAQ</div>
+      <button class="help-close" id="helpCloseBtn" aria-label="Close help">✕</button>
+    </div>
+    <div class="help-tabs" role="tablist">
+      <button class="help-tab active" id="helpTabHow" role="tab" aria-selected="true" aria-controls="helpHow">How to use</button>
+      <button class="help-tab" id="helpTabFaq" role="tab" aria-selected="false" aria-controls="helpFaq">FAQ</button>
+    </div>
+    <div class="help-body">
+      <div class="help-section active" id="helpHow" role="tabpanel">
+        <div class="help-step">
+          <div class="help-step-num">1</div>
+          <div class="help-step-body">
+            <h4>Add participants</h4>
+            <p>Type each person's name in Step 1 and optionally add their bank account number for settlement. Click <strong>Add</strong> or press Enter.</p>
+          </div>
+        </div>
+        <div class="help-step">
+          <div class="help-step-num">2</div>
+          <div class="help-step-body">
+            <h4>Enter expenses</h4>
+            <p>In Step 2, enter the expense name, amount, and who paid. Choose which people to split it among, then click <strong>Add expense</strong>.</p>
+            <p>Use the quick-fill buttons (Dinner, Taxi…) to pre-fill the category and name instantly.</p>
+          </div>
+        </div>
+        <div class="help-step">
+          <div class="help-step-num">3</div>
+          <div class="help-step-body">
+            <h4>Scan a receipt (OCR)</h4>
+            <p>Tap <strong>📷 Scan Receipt</strong> in the header. Upload or photograph a receipt — items are detected automatically. Tap each person's avatar on a line to assign them. Adjust tax/discount if needed, then import as one grouped expense.</p>
+          </div>
+        </div>
+        <div class="help-step">
+          <div class="help-step-num">4</div>
+          <div class="help-step-body">
+            <h4>Add session tax or tips</h4>
+            <p>Use the <strong>💰 Session Tax &amp; Tips</strong> bar to apply a percentage tip or flat service charge to the whole bill. It adjusts settlement amounts proportionally without modifying individual expenses.</p>
+          </div>
+        </div>
+        <div class="help-step">
+          <div class="help-step-num">5</div>
+          <div class="help-step-body">
+            <h4>Save sessions (multiple trips)</h4>
+            <p>Click <strong>Save</strong> in the session bar to store the current trip under its title. Later, select it from the dropdown and click <strong>Load</strong> to restore it. You can save multiple trips (e.g. Taipei Trip, Paris Trip).</p>
+          </div>
+        </div>
+        <div class="help-step">
+          <div class="help-step-num">6</div>
+          <div class="help-step-body">
+            <h4>Settle up &amp; export</h4>
+            <p>The <strong>Settle up</strong> panel shows the minimum payments needed. Click <strong>⬇️ Export</strong> to download a JSON backup, a text summary, or copy it to clipboard to share in chat.</p>
+          </div>
+        </div>
+      </div>
+      <div class="help-section" id="helpFaq" role="tabpanel">
+        <div class="faq-item">
+          <div class="faq-q">How do I switch currency? <span class="faq-icon">▾</span></div>
+          <div class="faq-a">Use the <strong>Currency</strong> dropdown in the session bar. All amounts display in the selected currency symbol. The exchange rate is not applied — amounts are entered directly in the chosen currency.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Can one expense be paid by multiple people? <span class="faq-icon">▾</span></div>
+          <div class="faq-a">Yes. After an expense is created, click <strong>✏️ Edit</strong> on the expense card. In the "Paid by" section, enter how much each person contributed. The amounts must sum to the expense total.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How does the OCR receipt scan work? <span class="faq-icon">▾</span></div>
+          <div class="faq-a">It uses Tesseract.js to run OCR entirely in your browser — no data is sent to any server. For best results use a flat, well-lit photo with clear text. After scanning, review and correct items before importing.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">What is "Equal vs Custom vs Percentage" split? <span class="faq-icon">▾</span></div>
+          <div class="faq-a"><strong>Equal</strong> divides the amount evenly. <strong>Custom</strong> lets you enter a relative weight per person (e.g. 2:1:1). <strong>Percentage</strong> lets you specify exact percentages that should sum to 100%.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">Is my data saved? <span class="faq-icon">▾</span></div>
+          <div class="faq-a">The active session auto-saves to your browser's localStorage on every change. Use <strong>Save</strong> in the session bar to create named snapshots, and <strong>⬇️ Export → JSON</strong> for a file backup you can restore later.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How do I restore a JSON backup? <span class="faq-icon">▾</span></div>
+          <div class="faq-a">Click <strong>⬇️ Export → Import JSON</strong> and select the file. Your people, expenses and session adjustments will be restored.</div>
+        </div>
+        <div class="faq-item">
+          <div class="faq-q">How does the session tax/tip work? <span class="faq-icon">▾</span></div>
+          <div class="faq-a">Session adjustments scale all settlement amounts by a factor without modifying individual expense records. For example, a 10% service charge multiplies every person's net amount by 1.1. You can add multiple adjustments that stack together.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Tesseract loads lazily when Scan Receipt is first opened -->
+
+<!-- ── Scan Receipt Modal ─────────────────────────────────────────── -->
+<div class="ocr-overlay" id="ocrOverlay" role="dialog" aria-modal="true" aria-label="Scan Receipt">
+  <div class="ocr-modal" id="ocrModal">
+
+    <!-- Header -->
+    <div class="ocr-modal-head">
+      <div class="ocr-modal-title">
+        <span>📷</span> Scan Receipt
+      </div>
+      <button class="ocr-close-btn" id="ocrCloseBtn" aria-label="Close">&#x2715;</button>
+    </div>
+
+    <!-- Body -->
+    <div class="ocr-modal-body">
+
+      <!-- Upload zone -->
+      <div id="ocrUploadSection">
+        <div class="ocr-upload-zone" id="ocrDropZone">
+          <input type="file" id="ocrFileInput" accept="image/*" />
+          <div class="ocr-upload-icon">&#x1F9FE;</div>
+          <div class="ocr-upload-text">Upload or take a photo</div>
+          <div class="ocr-upload-sub">Drag &amp; drop, click to browse, or <span>use camera</span></div>
+        </div>
+
+        <!-- Image preview -->
+        <div class="ocr-preview-wrap" id="ocrPreviewWrap">
+          <img id="ocrPreviewImg" src="" alt="Receipt preview" />
+          <button class="ocr-preview-change" id="ocrChangeImgBtn">Change image</button>
+        </div>
+      </div>
+
+      <!-- Language select -->
+      <div class="ocr-lang-row">
+        <label for="ocrLangSelect">OCR Language:</label>
+        <select id="ocrLangSelect">
+          <option value="eng">English only</option>
+          <option value="chi_tra+eng">Traditional Chinese + English</option>
+          <option value="chi_sim+eng">Simplified Chinese + English</option>
+          <option value="jpn+eng">Japanese + English</option>
+        </select>
+      </div>
+
+      <!-- Tip -->
+      <div class="ocr-tip">
+        <span class="ocr-tip-icon">&#x1F4A1;</span>
+        <span>Well-lit, flat photo gives best results. OCR runs entirely in your browser — nothing is uploaded anywhere.</span>
+      </div>
+
+      <!-- Error -->
+      <div class="ocr-error-msg" id="ocrError"></div>
+
+      <!-- Progress -->
+      <div class="ocr-progress" id="ocrProgress">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+          <div class="ocr-spinner" id="ocrSpinner"></div>
+          <div class="ocr-progress-label" id="ocrProgressLabel">Initializing OCR engine&hellip;</div>
+        </div>
+        <div class="ocr-progress-bar-wrap">
+          <div class="ocr-progress-bar" id="ocrProgressBar"></div>
+        </div>
+      </div>
+
+      <!-- Scan button -->
+      <div class="ocr-scan-action">
+        <button id="ocrScanBtn" disabled>&#x1F50D; Scan Receipt</button>
+      </div>
+
+      <!-- Editable raw OCR text — appears after scan, before item results -->
+      <div id="ocrRawEditSection" style="display:none">
+        <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;flex-wrap:wrap">
+          <span style="font-size:11px;font-weight:800;color:var(--text-3);text-transform:uppercase;letter-spacing:.07em">Raw OCR text — edit to fix errors, then re-parse:</span>
+          <button class="ocr-reparse-btn visible" id="ocrReparseBtn">🔄 Re-parse items</button>
+        </div>
+        <textarea class="ocr-raw-edit open" id="ocrRawEditBox" placeholder="OCR text will appear here — edit it before parsing"></textarea>
+      </div>
+
+      <!-- Results panel -->
+      <div class="ocr-results" id="ocrResults">
+
+        <div class="ocr-results-head">
+          <div class="ocr-results-title">Recognized items</div>
+          <span class="ocr-total-check no-total" id="ocrTotalCheck">No total detected</span>
+        </div>
+
+        <div class="ocr-detected-total" id="ocrDetectedTotalRow" style="display:none">
+          <span class="dt-label">&#x1F9FE; Receipt total</span>
+          <span class="dt-value" id="ocrDetectedTotalVal">&#x2014;</span>
+        </div>
+
+        <!-- People bar: avatar palette + assign-all shortcuts -->
+        <div class="ocr-people-bar" id="ocrPeopleBar" style="display:none">
+          <div class="ocr-people-bar-title">Tap a person on each item to assign &#x2014; or use shortcuts:</div>
+          <div class="ocr-people-bar-row" id="ocrPeopleBarRow"></div>
+        </div>
+
+        <!-- Per-item list (LINE style) -->
+        <div class="ocr-item-list" id="ocrItemList"></div>
+
+        <!-- Tax / Discount accordion -->
+        <div class="ocr-adjustments" id="ocrAdjustments">
+          <div class="ocr-adj-head" id="ocrAdjHead">
+            <div class="ocr-adj-head-left">
+              <span>&#x1F4B0; Tax &amp; Discounts</span>
+              <span class="ocr-adj-badge" id="ocrAdjBadge">none</span>
+            </div>
+            <span class="ocr-adj-arrow">&#x25BE;</span>
+          </div>
+          <div class="ocr-adj-body">
+            <div class="ocr-adj-rows" id="ocrAdjRows"></div>
+            <button class="ocr-adj-add-btn" id="ocrAdjAddBtn">+ Add tax or discount</button>
+            <div class="ocr-adj-hint">Proportionally adjusts every item&#x2019;s final price. Tax adds, discount subtracts.</div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="ocr-adj-summary" id="ocrAdjSummary" style="display:none">
+          <div class="ocr-adj-summary-row">
+            <span class="asr-label">Items subtotal</span>
+            <span class="asr-val" id="ocrAdjSubtotal">0.00</span>
+          </div>
+          <div class="ocr-adj-summary-row asr-tax" id="ocrAdjTaxRow" style="display:none">
+            <span class="asr-label">Tax / Service</span>
+            <span class="asr-val" id="ocrAdjTaxVal">+0.00</span>
+          </div>
+          <div class="ocr-adj-summary-row asr-disc" id="ocrAdjDiscRow" style="display:none">
+            <span class="asr-label">Discount</span>
+            <span class="asr-val" id="ocrAdjDiscVal">&#x2212;0.00</span>
+          </div>
+          <div class="ocr-adj-summary-row asr-final">
+            <span class="asr-label">&#x2192; Adjusted total</span>
+            <span class="asr-val" id="ocrAdjTotal">0.00</span>
+          </div>
+        </div>
+
+        <button class="ocr-add-row-btn" id="ocrAddRowBtn">+ Add item manually</button>
+
+      </div>
+
+
+
+    <!-- Footer -->
+    <div class="ocr-modal-footer" id="ocrModalFooter" style="display:none">
+      <button id="ocrImportBtn">&#x2705; Import items as expenses</button>
+      <button id="ocrResetBtn">&#x21A9; Rescan</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- removed importFile -->
+
+<script>
+  (() => {
+    const STORAGE_KEY = 'splitBillPro_v2';
+
+    // ── State ─────────────────────────────────────────────────────────
+    let state = { title: '', people: [], expenses: [], sessionAdjustments: [] };
+    let currency = { code: 'TWD', symbol: 'NT$' };
+
+    const CURRENCIES = {
+      TWD:'NT$', USD:'$', IDR:'Rp', EUR:'€', JPY:'¥',
+      GBP:'£', AUD:'A$', CAD:'C$', THB:'฿', SGD:'S$', MYR:'RM'
+    };
+
+    const CAT = {
+      food:          { label:'Food',          icon:'🍽️' },
+      transport:     { label:'Transport',      icon:'🚕' },
+      groceries:     { label:'Groceries',      icon:'🛒' },
+      shopping:      { label:'Shopping',       icon:'🛍️' },
+      accommodation: { label:'Accommodation',  icon:'🏨' },
+      entertainment: { label:'Entertainment',  icon:'🎉' },
+      other:         { label:'Other',          icon:'🗂️' }
+    };
+
+    const TEMPLATES = {
+      dinner:     { title:'Dinner',     category:'food'          },
+      taxi:       { title:'Taxi',       category:'transport'     },
+      groceries:  { title:'Groceries',  category:'groceries'     },
+      hotel:      { title:'Hotel',      category:'accommodation' },
+      drinks:     { title:'Drinks',     category:'entertainment' },
+      trip:       { title:'Airfare',    category:'accommodation' }
+    };
+
+    // ── Element refs ──────────────────────────────────────────────────
+    const $ = id => document.getElementById(id);
+    const els = {
+      personName:         $('personName'),
+      personBank:         $('personBank'),
+      addPersonBtn:       $('addPersonBtn'),
+      peopleList:         $('peopleList'),
+      peopleEmpty:        $('peopleEmpty'),
+      peopleBadge:        $('peopleBadge'),
+      expenseTitle:       $('expenseTitle'),
+      expenseAmount:      $('expenseAmount'),
+      expensePaidBy:      $('expensePaidBy'),
+      expenseCategory:    $('expenseCategory'),
+      expenseNote:        $('expenseNote'),
+      participantsBox:    $('participantsBox'),
+      splitMode:          $('splitMode'),
+      roundingRule:       $('roundingRule'),
+      sharesEditor:       $('sharesEditor'),
+      addExpenseBtn:      $('addExpenseBtn'),
+      clearFormBtn:       $('clearFormBtn'),
+      expenseList:        $('expenseList'),
+      expenseEmpty:       $('expenseEmpty'),
+      expenseBadge:       $('expenseBadge'),
+      settlementList:     $('settlementList'),
+      settlementEmpty:    $('settlementEmpty'),
+      settleTotalDisplay: $('settleTotalDisplay'),
+      balanceList:        $('balanceList'),
+      balanceEmpty:       $('balanceEmpty'),
+      statTotal:          $('statTotal'),
+      statPeople:         $('statPeople'),
+      statExpenses:       $('statExpenses'),
+      statTotalCard:      $('statTotalCard'),
+      statPeopleCard:     $('statPeopleCard'),
+      statExpensesCard:   $('statExpensesCard'),
+      sampleBtn:          $('sampleBtn'),
+      exportBtn:          $('exportBtn'),
+      resetBtn:           $('resetBtn'),
+      currencySelect:     $('currencySelect'),
+      sessionTitleInput:  $('sessionTitleInput'),
+      copySettlementBtn:  $('copySettlementBtn'),
+      searchInput:        $('searchInput'),
+      filterCategory:     $('filterCategory'),
+      filterPayer:        $('filterPayer')
+    };
+
+    // ── Toast ─────────────────────────────────────────────────────────
+    function toast(msg, type = 'success') {
+      const wrap = $('toast-wrap');
+      const el = document.createElement('div');
+      el.className = `toast ${type}`;
+      el.textContent = msg;
+      wrap.appendChild(el);
+      requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+      setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 2800);
+    }
+
+    // ── Utilities ─────────────────────────────────────────────────────
+    function uid(p='id') { return p + '_' + Math.random().toString(36).slice(2,10); }
+    function money(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+    function round(v, rule) {
+      if (rule === 'up')   return Math.ceil(v * 100) / 100;
+      if (rule === 'down') return Math.floor(v * 100) / 100;
+      return Math.round(v * 100) / 100;
+    }
+    function fmt(v) {
+      return currency.symbol + money(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function fmtNum(v) {
+      return money(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    function esc(str) {
+      return String(str ?? '')
+        .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+        .replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+    }
+    function personName(id) { return state.people.find(p => p.id === id)?.name || 'Unknown'; }
+
+    // ── Persistence ───────────────────────────────────────────────────
+    function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify({ state, currencyCode: currency.code })); }
+    function load() {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY);
+        if (raw) {
+          const parsed = JSON.parse(raw);
+          if (parsed?.state?.people && parsed?.state?.expenses) {
+            state = parsed.state;
+            if (!state.title) state.title = '';
+            if (!state.sessionAdjustments) state.sessionAdjustments = [];
+            if (parsed.currencyCode && CURRENCIES[parsed.currencyCode]) {
+              currency = { code: parsed.currencyCode, symbol: CURRENCIES[parsed.currencyCode] };
+              els.currencySelect.value = parsed.currencyCode;
+            }
+            return;
+          }
+        }
+      } catch (_) {}
+      loadSample(false);
+    }
+
+    function loadSample(shouldSave = true) {
+      const a = uid('p'), b = uid('p'), c = uid('p'), d = uid('p');
+      state = {
+        title: 'Taipei Trip 🗺️',
+        people: [
+          { id: a, name: 'Alice',   bank: 'CTBC 1234-5678' },
+          { id: b, name: 'Bob',     bank: 'LINE Bank 9876-5432' },
+          { id: c, name: 'Charlie', bank: '' },
+          { id: d, name: 'Kenn',    bank: 'Cathay 0011-2233' }
+        ],
+        expenses: [
+          { id: uid('e'), title: 'Dinner', amount: 960, paidBy: a, participantIds: [a,b,c,d], mode: 'equal', shares: {}, rounding: 'nearest', category: 'food', note: 'At Blue Elephant' },
+          { id: uid('e'), title: 'Taxi', amount: 330, paidBy: d, participantIds: [b,c,d], mode: 'percent', shares: { [b]: 40, [c]: 40, [d]: 20 }, rounding: 'nearest', category: 'transport', note: '' },
+          { id: uid('e'), title: 'Drinks', amount: 180, paidBy: b, participantIds: [a,b,c], mode: 'custom', shares: { [a]: 50, [b]: 70, [c]: 60 }, rounding: 'nearest', category: 'entertainment', note: '' }
+        ]
+      };
+      if (shouldSave) save();
+      render();
+    }
+
+    // ── Form helpers ──────────────────────────────────────────────────
+    function clearForm() {
+      els.expenseTitle.value = '';
+      els.expenseAmount.value = '';
+      els.expenseNote.value = '';
+      els.expenseCategory.value = 'other';
+      els.splitMode.value = 'equal';
+      els.roundingRule.value = 'nearest';
+      renderParticipantsAndPayer();
+      renderSharesEditor();
+    }
+
+    function getCheckedParticipants() {
+      return Array.from(els.participantsBox.querySelectorAll('input[type="checkbox"]:checked')).map(i => i.value);
+    }
+
+    function buildShareInputs(mode, participantIds) {
+      const people = participantIds.map(id => state.people.find(p => p.id === id)).filter(Boolean);
+      if (!people.length || mode === 'equal') return '';
+      const ph = mode === 'percent' ? '0-100' : '0.00';
+      return people.map(p => `
+        <div class="share-row">
+          <div class="sname">${esc(p.name)}</div>
+          <input type="number" step="0.01" min="0" data-share-person="${p.id}" placeholder="${ph}" />
+        </div>
+      `).join('');
+    }
+
+    function renderParticipantsAndPayer() {
+      const people = state.people;
+      els.expensePaidBy.innerHTML = people.length
+        ? people.map(p => `<option value="${p.id}">${esc(p.name)}</option>`).join('')
+        : `<option value="">No people yet</option>`;
+
+      els.participantsBox.innerHTML = people.map(p => `
+        <label class="check-item" onclick="this.classList.toggle('checked-item', this.querySelector('input').checked)">
+          <input type="checkbox" value="${p.id}" checked />
+          <span>${esc(p.name)}</span>
+        </label>
+      `).join('');
+
+      // sync checked-item state
+      els.participantsBox.querySelectorAll('.check-item').forEach(lbl => {
+        if (lbl.querySelector('input').checked) lbl.classList.add('checked-item');
+      });
+
+      const cur = els.filterPayer.value;
+      els.filterPayer.innerHTML = `<option value="">All payers</option>` +
+        people.map(p => `<option value="${p.id}"${p.id===cur?' selected':''}>${esc(p.name)}</option>`).join('');
+    }
+
+    function renderSharesEditor() {
+      const mode = els.splitMode.value;
+      const selected = getCheckedParticipants();
+      if (mode === 'equal') {
+        els.sharesEditor.innerHTML = `<div class="hint">Equal: the total is divided evenly among all selected people.</div>`;
+        return;
+      }
+      if (!selected.length) {
+        els.sharesEditor.innerHTML = `<div class="hint">Select at least one participant first.</div>`;
+        return;
+      }
+      const hdr = mode === 'percent'
+        ? `<div class="hint">Enter each person's share as a percentage. Should total 100%.</div>`
+        : `<div class="hint">Enter a relative weight per person — the app scales to the total.</div>`;
+      els.sharesEditor.innerHTML = hdr + buildShareInputs(mode, selected);
+    }
+
+    function readShares(participantIds, mode) {
+      const shares = {};
+      if (mode === 'equal') return shares;
+      participantIds.forEach(id => {
+        const inp = els.sharesEditor.querySelector(`[data-share-person="${id}"]`);
+        shares[id] = inp ? money(inp.value) : 0;
+      });
+      return shares;
+    }
+
+    // ── Add / remove people ───────────────────────────────────────────
+    function showFieldError(fieldId, errId, msg) {
+      const f = $(fieldId); const e = $(errId);
+      if (f) f.classList.add('field-error');
+      if (e) { e.textContent = msg; }
+    }
+    function clearFieldError(fieldId, errId) {
+      const f = $(fieldId); const e = $(errId);
+      if (f) f.classList.remove('field-error');
+      if (e) e.textContent = '';
+    }
+
+    function addPerson() {
+      const name = els.personName.value.trim();
+      const bank = els.personBank ? els.personBank.value.trim() : '';
+      clearFieldError('personNameField', 'personNameErr');
+      if (!name) {
+        showFieldError('personNameField', 'personNameErr', 'Please enter a name.');
+        els.personName.focus(); return;
+      }
+      if (state.people.some(p => p.name.toLowerCase() === name.toLowerCase())) {
+        showFieldError('personNameField', 'personNameErr', `"${name}" is already in the group.`);
+        els.personName.focus(); return;
+      }
+      state.people.push({ id: uid('p'), name, bank });
+      els.personName.value = '';
+      if (els.personBank) els.personBank.value = '';
+      save(); render();
+      toast(`${name} added ✓`);
+    }
+
+    function removePerson(id) {
+      const person = state.people.find(p => p.id === id);
+      if (!person) return;
+      if (state.expenses.some(e => e.paidBy === id || e.participantIds.includes(id))) {
+        toast('Remove this person from their expenses first.', 'info'); return;
+      }
+      state.people = state.people.filter(p => p.id !== id);
+      save(); render();
+      toast(`${person.name} removed.`);
+    }
+
+    // ── Add / remove / edit expenses ──────────────────────────────────
+    function addExpense() {
+      if (state.people.length < 2) { toast('Add at least 2 people first.', 'info'); return; }
+      let valid = true;
+      const titleVal = els.expenseTitle.value.trim();
+      const amount   = money(els.expenseAmount.value);
+      const paidBy   = els.expensePaidBy.value;
+      const participantIds = getCheckedParticipants();
+
+      // Inline validation
+      clearFieldError('expenseTitleField', 'expenseTitleErr');
+      clearFieldError('expenseAmountField', 'expenseAmountErr');
+      if (!titleVal) { showFieldError('expenseTitleField', 'expenseTitleErr', 'Please enter a name.'); valid = false; }
+      if (amount <= 0) { showFieldError('expenseAmountField', 'expenseAmountErr', 'Amount must be > 0.'); valid = false; }
+      if (!paidBy) { toast('Please select who paid.', 'info'); valid = false; }
+      if (!participantIds.length) { toast('Select at least one person to split with.', 'info'); valid = false; }
+      if (!valid) return;
+
+      const title    = titleVal || 'Untitled';
+      const mode     = els.splitMode.value;
+      const rounding = els.roundingRule.value;
+      const category = els.expenseCategory.value || 'other';
+      const note     = els.expenseNote.value.trim();
+      const shares   = readShares(participantIds, mode);
+      if (mode !== 'equal') {
+        const total = participantIds.reduce((s, id) => s + money(shares[id]), 0);
+        if (total <= 0) { toast('Enter share values above 0.', 'info'); return; }
+      }
+
+      state.expenses.unshift({ id: uid('e'), title, amount, paidBy, paidByMultiple: { [paidBy]: amount }, participantIds, mode, shares, rounding, category, note, receiptItems: [], receiptImageDataUrl: '' });
+      save(); clearForm(); render();
+      toast(`"${title}" added ✓`);
+      // Auto-open step 3 to show new expense
+      setStepOpen('stepHead3', true);
+    }
+
+    function removeExpense(id) {
+      const exp = state.expenses.find(e => e.id === id);
+      state.expenses = state.expenses.filter(e => e.id !== id);
+      save(); render();
+      if (exp) toast(`"${exp.title}" removed.`);
+    }
+
+    function saveInlineEdit(id) {
+      const exp = state.expenses.find(e => e.id === id);
+      if (!exp) return;
+      const form = $(`edit-form-${id}`);
+      if (!form) return;
+
+      const newTitle    = form.querySelector('[data-edit="title"]').value.trim() || 'Untitled';
+      const newAmount   = money(form.querySelector('[data-edit="amount"]').value);
+      const newCategory = form.querySelector('[data-edit="category"]').value;
+      const newNote     = form.querySelector('[data-edit="note"]').value.trim();
+      const newParticipantIds = Array.from(form.querySelectorAll('[data-edit-participant]:checked')).map(i => i.value);
+      const newMode     = form.querySelector('[data-edit="splitMode"]').value;
+      const newRounding = form.querySelector('[data-edit="rounding"]').value;
+
+      if (newAmount <= 0) { toast('Amount must be > 0.', 'info'); return; }
+      if (!newParticipantIds.length) { toast('Select at least one participant.', 'info'); return; }
+
+      // Read multi-payer amounts
+      const newPaidByMultiple = {};
+      form.querySelectorAll('[data-edit-payer]').forEach(inp => {
+        const pid = inp.dataset.editPayer;
+        const v = money(inp.value);
+        if (v > 0) newPaidByMultiple[pid] = v;
+      });
+      const payerTotal = Object.values(newPaidByMultiple).reduce((a, b) => a + b, 0);
+      if (payerTotal <= 0) { toast('At least one payer must contribute > 0.', 'info'); return; }
+      // Scale if payer total doesn't match amount (allow minor drift, otherwise warn)
+      const diff = Math.abs(payerTotal - newAmount);
+      if (diff > 0.05) { toast(`Payer amounts sum to ${fmtNum(payerTotal)} but expense is ${fmtNum(newAmount)}. Please adjust.`, 'info'); return; }
+      // Primary paidBy = the person who paid the most
+      const newPaidBy = Object.entries(newPaidByMultiple).sort((a,b) => b[1]-a[1])[0][0];
+
+      const newShares = {};
+      if (newMode !== 'equal') {
+        newParticipantIds.forEach(pid => {
+          const inp = form.querySelector(`[data-edit-share="${pid}"]`);
+          newShares[pid] = inp ? money(inp.value) : 0;
+        });
+        const totalShares = newParticipantIds.reduce((s, pid) => s + money(newShares[pid]), 0);
+        if (totalShares <= 0) { toast('Enter share values > 0.', 'info'); return; }
+      }
+
+      Object.assign(exp, { title: newTitle, amount: newAmount, paidBy: newPaidBy, paidByMultiple: newPaidByMultiple, category: newCategory, note: newNote, participantIds: newParticipantIds, mode: newMode, rounding: newRounding, shares: newShares });
+      save(); render();
+      toast(`"${newTitle}" updated ✓`);
+    }
+
+    // ── Calculation ───────────────────────────────────────────────────
+    function calcShares(expense) {
+      const { participantIds: pids, amount: amt, mode, shares, rounding: rule = 'nearest' } = expense;
+      const res = {}; pids.forEach(id => res[id] = 0);
+      if (!pids.length) return res;
+
+      if (mode === 'equal') {
+        const base = round(money(amt) / pids.length, rule);
+        pids.forEach((id, i) => {
+          res[id] = i === pids.length - 1 ? round(money(amt) - base * (pids.length - 1), rule) : base;
+        });
+        return res;
+      }
+
+      const rawTotal = pids.reduce((s, id) => s + money(shares[id]), 0);
+      if (rawTotal <= 0) {
+        const fb = round(money(amt) / pids.length, rule);
+        pids.forEach((id, i) => { res[id] = i === pids.length - 1 ? round(money(amt) - fb * (pids.length - 1), rule) : fb; });
+        return res;
+      }
+      pids.forEach((id, i) => {
+        res[id] = i === pids.length - 1 ? 0 : round((money(shares[id]) / rawTotal) * money(amt), rule);
+      });
+      const sumBefore = pids.slice(0,-1).reduce((s, id) => s + money(res[id]), 0);
+      res[pids[pids.length - 1]] = round(money(amt) - sumBefore, rule);
+      return res;
+    }
+
+    function compute() {
+      const paid = {}, owed = {};
+      state.people.forEach(p => { paid[p.id] = 0; owed[p.id] = 0; });
+
+      const expenseBreakdown = state.expenses.map(expense => {
+        const shares = calcShares(expense);
+        // Support multi-payer: distribute paid amounts per person
+        const pbm = expense.paidByMultiple && Object.keys(expense.paidByMultiple).length
+          ? expense.paidByMultiple
+          : { [expense.paidBy]: expense.amount };
+        Object.entries(pbm).forEach(([pid, amt]) => {
+          if (paid[pid] !== undefined) paid[pid] = money(paid[pid]) + money(amt);
+        });
+        Object.entries(shares).forEach(([id, s]) => { owed[id] = money(owed[id]) + money(s); });
+        return { ...expense, computedShares: shares };
+      });
+
+      const balances = {};
+      state.people.forEach(p => {
+        balances[p.id] = round(money(paid[p.id]) - money(owed[p.id]), 'nearest');
+      });
+
+      const settlements = settle(balances);
+      const total = state.expenses.reduce((s, e) => s + money(e.amount), 0);
+      return { paid, owed, balances, settlements, total, expenseBreakdown };
+    }
+
+    function settle(balances) {
+      const creditors = [], debtors = [];
+      Object.entries(balances).forEach(([id, bal]) => {
+        const r = round(bal, 'nearest');
+        if (r > 0.009) creditors.push({ id, amount: r });
+        if (r < -0.009) debtors.push({ id, amount: Math.abs(r) });
+      });
+      creditors.sort((a, b) => b.amount - a.amount);
+      debtors.sort((a, b) => b.amount - a.amount);
+      const tx = [];
+      let i = 0, j = 0;
+      while (i < debtors.length && j < creditors.length) {
+        const send = Math.min(debtors[i].amount, creditors[j].amount);
+        const amt = round(send, 'nearest');
+        if (amt <= 0) break;
+        tx.push({ from: debtors[i].id, to: creditors[j].id, amount: amt });
+        debtors[i].amount = round(debtors[i].amount - amt, 'nearest');
+        creditors[j].amount = round(creditors[j].amount - amt, 'nearest');
+        if (debtors[i].amount <= 0.009) i++;
+        if (creditors[j].amount <= 0.009) j++;
+      }
+      return tx;
+    }
+
+    // ── Render: People ────────────────────────────────────────────────
+    function renderPeople() {
+      const calc = compute();
+      els.peopleList.innerHTML = state.people.map(p => {
+        const bal = money(calc.balances[p.id]);
+        let balHtml = '';
+        if (bal > 0.009) balHtml = `<span class="pill-balance pos">+${fmt(bal)}</span>`;
+        else if (bal < -0.009) balHtml = `<span class="pill-balance neg">−${fmt(Math.abs(bal))}</span>`;
+        else if (state.expenses.length > 0) balHtml = `<span class="pill-balance neu">settled</span>`;
+        const bankHtml = p.bank
+          ? `<span style="font-size:10px;color:var(--text-3);font-weight:600;font-family:'JetBrains Mono',monospace;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(p.bank)}">🏦 ${esc(p.bank)}</span>`
+          : `<button class="pill-bank-add" data-add-bank="${esc(p.id)}" title="Add bank account" style="background:none;border:none;font-size:10px;color:var(--text-3);cursor:pointer;padding:0;font-weight:600">+ bank</button>`;
+        return `
+          <div class="person-pill" style="flex-direction:column;align-items:flex-start;gap:3px;padding:8px 12px">
+            <div style="display:flex;align-items:center;gap:8px;width:100%">
+              <span style="font-weight:700">${esc(p.name)}</span>
+              ${balHtml}
+              <button class="pill-remove" data-remove-person="${p.id}" title="Remove ${esc(p.name)}" style="margin-left:auto">×</button>
+            </div>
+            <div class="pill-bank-row" id="bank-row-${p.id}" style="display:flex;align-items:center;gap:6px;width:100%">
+              ${bankHtml}
+              ${p.bank ? `<button class="pill-bank-add" data-edit-bank="${esc(p.id)}" style="background:none;border:none;font-size:10px;color:var(--text-3);cursor:pointer;padding:0;font-weight:600">✏️</button>` : ''}
+            </div>
+            <div class="pill-bank-input" id="bank-input-${p.id}" style="display:none;width:100%">
+              <div style="display:flex;gap:4px">
+                <input style="flex:1;padding:4px 8px;font-size:12px;border-radius:6px" placeholder="Bank name / account no." value="${esc(p.bank||'')}" data-bank-field="${p.id}" />
+                <button data-save-bank="${p.id}" style="background:var(--primary);color:#fff;border:none;border-radius:6px;padding:4px 8px;font-size:11px;font-weight:700;cursor:pointer">Save</button>
+                <button data-cancel-bank="${p.id}" style="background:var(--surface-2);border:1px solid var(--border);border-radius:6px;padding:4px 6px;font-size:11px;cursor:pointer">✕</button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      els.peopleEmpty.style.display = state.people.length ? 'none' : 'block';
+      els.peopleBadge.textContent = `${state.people.length} ${state.people.length === 1 ? 'person' : 'people'}`;
+    }
+
+    // ── Render: Expenses ──────────────────────────────────────────────
+    function renderExpenses(breakdown) {
+      const search = els.searchInput.value.toLowerCase().trim();
+      const catF = els.filterCategory.value;
+      const payerF = els.filterPayer.value;
+
+      const filtered = breakdown.filter(e => {
+        const allPayers = Object.keys(e.paidByMultiple || { [e.paidBy]: 1 });
+        const ms = !search || e.title.toLowerCase().includes(search)
+          || allPayers.some(id => personName(id).toLowerCase().includes(search))
+          || (e.note||'').toLowerCase().includes(search);
+        const mc = !catF || e.category === catF;
+        const mp = !payerF || (e.paidByMultiple ? payerF in e.paidByMultiple : e.paidBy === payerF);
+        return ms && mc && mp;
+      });
+
+      els.expenseList.innerHTML = filtered.map(exp => {
+        const cat = CAT[exp.category] || CAT.other;
+        const modeLabel = exp.mode === 'equal' ? 'Equal' : exp.mode === 'custom' ? 'Custom' : '%';
+        const noteStr = exp.note ? ` · 📝 ${esc(exp.note.length > 32 ? exp.note.slice(0,32)+'…' : exp.note)}` : '';
+
+        // Multi-payer display
+        const pbm = exp.paidByMultiple && Object.keys(exp.paidByMultiple).length
+          ? exp.paidByMultiple : { [exp.paidBy]: exp.amount };
+        const payerCount = Object.keys(pbm).length;
+        const payerDisplay = payerCount === 1
+          ? `Paid by <strong>${esc(personName(Object.keys(pbm)[0]))}</strong>`
+          : `Paid by <strong>${payerCount} people</strong>`;
+        const payerChips = payerCount > 1
+          ? Object.entries(pbm).map(([pid, amt]) =>
+              `<span class="member-chip" style="background:var(--green-s);border-color:#b2f2bb;color:var(--green)">${esc(personName(pid))} ${fmt(amt)}</span>`
+            ).join('') : '';
+
+        // Split-among chips
+        const memberChips = exp.participantIds.map(id => `<span class="member-chip">${esc(personName(id))}</span>`).join('');
+        const sharesText  = Object.entries(exp.computedShares).map(([id, a]) => `${esc(personName(id))}: ${fmt(a)}`).join(' · ');
+
+        // Receipt items breakdown (if from scan)
+        const hasReceipt = exp.receiptImageDataUrl && exp.receiptImageDataUrl.length > 10;
+        const hasItems   = exp.receiptItems && exp.receiptItems.length > 0;
+        const receiptBtnHtml = hasReceipt
+          ? `<button class="btn-ghost btn-sm" data-view-receipt="${exp.id}">🧾 Receipt</button>` : '';
+        const itemsBreakdownHtml = hasItems ? `
+          <div class="exp-items-breakdown" id="items-${exp.id}" style="display:none">
+            <div style="font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--text-3);padding:8px 14px 4px">Item breakdown</div>
+            ${exp.receiptItems.map(it => `
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 14px;font-size:12px;border-top:1px solid var(--border)">
+                <span style="font-weight:600">${esc(it.name)}</span>
+                <div style="display:flex;align-items:center;gap:8px">
+                  <span style="font-family:'JetBrains Mono',monospace;font-weight:700;color:var(--text-2)">${fmt(it.price)}</span>
+                  <span style="color:var(--text-3);font-size:11px">${it.participantIds.map(pid => esc(personName(pid))).join(', ')}</span>
+                </div>
+              </div>`).join('')}
+          </div>` : '';
+        const itemsBtnHtml = hasItems
+          ? `<button class="btn-ghost btn-sm" data-toggle-items="${exp.id}">📋 ${exp.receiptItems.length} items</button>` : '';
+
+        // Inline edit form — multi-payer section
+        const participantChecks = state.people.map(p =>
+          `<label class="check-item${exp.participantIds.includes(p.id)?' checked-item':''}">
+            <input type="checkbox" data-edit-participant value="${p.id}"${exp.participantIds.includes(p.id)?' checked':''} />
+            <span>${esc(p.name)}</span>
+          </label>`
+        ).join('');
+
+        const payerInputs = state.people.map(p => {
+          const v = pbm[p.id] != null ? pbm[p.id] : '';
+          return `<div class="share-row">
+            <div class="sname">${esc(p.name)}</div>
+            <input type="number" step="0.01" min="0" data-edit-payer="${p.id}" value="${v}" placeholder="0.00" />
+          </div>`;
+        }).join('');
+
+        const sharesEditorInline = exp.mode !== 'equal'
+          ? exp.participantIds.map(pid => {
+              const v = exp.shares[pid] != null ? exp.shares[pid] : '';
+              return `<div class="share-row"><div class="sname">${esc(personName(pid))}</div><input type="number" step="0.01" min="0" data-edit-share="${pid}" value="${v}" placeholder="0" /></div>`;
+            }).join('')
+          : `<div class="hint">Equal split — no individual share values needed.</div>`;
+
+        return `
+          <div class="exp-card" id="exp-${exp.id}">
+            <div class="exp-main">
+              <div class="exp-left">
+                <div class="exp-name">${cat.icon} ${esc(exp.title)}</div>
+                <div class="exp-meta">
+                  <span>${payerDisplay}</span>
+                  <span class="cat-chip">${cat.label}</span>
+                  <span>${modeLabel} split</span>
+                  ${noteStr ? `<span>${noteStr}</span>` : ''}
+                </div>
+                ${payerChips ? `<div class="exp-meta" style="margin-top:4px">${payerChips}</div>` : ''}
+              </div>
+              <div class="exp-right">
+                <div class="exp-amount">${fmt(exp.amount)}</div>
+                <div class="exp-actions">
+                  ${receiptBtnHtml}
+                  ${itemsBtnHtml}
+                  <button class="btn-secondary btn-sm" data-edit-toggle="${exp.id}">✏️ Edit</button>
+                  <button class="btn-danger btn-sm" data-remove-expense="${exp.id}">Delete</button>
+                </div>
+              </div>
+            </div>
+            <div class="exp-footer">
+              ${memberChips}
+              <span class="shares-text">${sharesText}</span>
+            </div>
+            ${itemsBreakdownHtml}
+            <!-- Receipt image viewer -->
+            ${hasReceipt ? `<div class="exp-receipt-view" id="receipt-${exp.id}" style="display:none;padding:12px 14px;border-top:1px solid var(--border)">
+              <img src="${esc(exp.receiptImageDataUrl)}" style="width:100%;max-height:320px;object-fit:contain;border-radius:8px;background:#f0f0f0" alt="Receipt" />
+            </div>` : ''}
+            <!-- Inline edit -->
+            <div class="inline-edit" id="edit-form-${exp.id}">
+              <div class="stack">
+                <div class="grid-2">
+                  <div class="field"><label class="field-label">Name</label><input data-edit="title" value="${esc(exp.title)}" /></div>
+                  <div class="field"><label class="field-label">Amount</label><input type="number" step="0.01" min="0" data-edit="amount" value="${exp.amount}" /></div>
+                </div>
+                <div class="grid-2">
+                  <div class="field"><label class="field-label">Category</label>
+                    <select data-edit="category">
+                      ${Object.entries(CAT).map(([k,v])=>`<option value="${k}"${k===exp.category?' selected':''}>${v.icon} ${v.label}</option>`).join('')}
+                    </select>
+                  </div>
+                  <div class="field"><label class="field-label">Note</label><input data-edit="note" value="${esc(exp.note||'')}" placeholder="Optional note" /></div>
+                </div>
+                <div class="field">
+                  <label class="field-label">Paid by (enter each person's contribution — must sum to amount)</label>
+                  <div class="stack" style="gap:8px">${payerInputs}</div>
+                </div>
+                <div class="field"><label class="field-label">Split among</label><div class="check-grid">${participantChecks}</div></div>
+                <div class="grid-2">
+                  <div class="field"><label class="field-label">Split mode</label>
+                    <select data-edit="splitMode">
+                      <option value="equal"${exp.mode==='equal'?' selected':''}>Equal</option>
+                      <option value="custom"${exp.mode==='custom'?' selected':''}>Custom</option>
+                      <option value="percent"${exp.mode==='percent'?' selected':''}>Percentage</option>
+                    </select>
+                  </div>
+                  <div class="field"><label class="field-label">Rounding</label>
+                    <select data-edit="rounding">
+                      <option value="nearest"${(exp.rounding||'nearest')==='nearest'?' selected':''}>Nearest</option>
+                      <option value="up"${exp.rounding==='up'?' selected':''}>Round up</option>
+                      <option value="down"${exp.rounding==='down'?' selected':''}>Round down</option>
+                    </select>
+                  </div>
+                </div>
+                <div id="inline-shares-${exp.id}" class="stack">${sharesEditorInline}</div>
+                <div class="toolbar">
+                  <button class="btn-primary" data-save-edit="${exp.id}">Save changes</button>
+                  <button class="btn-secondary" data-cancel-edit="${exp.id}">Cancel</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      const none = filtered.length === 0;
+      els.expenseEmpty.style.display = none ? 'block' : 'none';
+      if (none && (search || catF || payerF)) {
+        els.expenseEmpty.innerHTML = '<strong>No matching expenses</strong><p>Try clearing the search or filters.</p>';
+      } else if (none) {
+        els.expenseEmpty.innerHTML = '<strong>No expenses yet</strong><p>Add your first shared expense above.</p>';
+      }
+      els.expenseBadge.textContent = `${state.expenses.length} ${state.expenses.length === 1 ? 'expense' : 'expenses'}`;
+    }
+
+    // ── Render: Settlement ────────────────────────────────────────────
+    function renderSettlement(settlements, balances) {
+      const factor = sessionAdjFactor();
+      const hasAdj = Math.abs(factor - 1) > 0.001;
+      els.settlementList.innerHTML = settlements.map(tx => {
+        const fromN   = esc(personName(tx.from));
+        const toN     = esc(personName(tx.to));
+        const fromBal = money(balances[tx.from]);
+        const toBal   = money(balances[tx.to]);
+        const dispAmt = tx.amount * factor;
+        const toP     = state.people.find(p => p.id === tx.to);
+        const bankLine = toP?.bank
+          ? `<div style="font-size:11px;font-weight:600;color:var(--text-3);padding:0 14px 8px;display:flex;align-items:center;gap:5px">🏦 <span>${esc(toP.bank)}</span></div>` : '';
+        const why = `${esc(personName(tx.from))} owes ${fmt(Math.abs(fromBal) * factor)}. ${esc(personName(tx.to))} is owed ${fmt(toBal * factor)}. This payment settles both.`;
+        const key = `${tx.from}-${tx.to}`;
+        return `
+          <div class="settle-card" id="stl-${key}">
+            <div class="settle-row">
+              <div class="settle-info">
+                <span class="badge badge-red" aria-label="Payment required">Pay</span>
+                <div class="settle-arrow" aria-label="${personName(tx.from)} pays ${personName(tx.to)}">
+                  <span class="from">${fromN}</span>
+                  <span class="arr" aria-hidden="true">→</span>
+                  <span class="to">${toN}</span>
+                </div>
+              </div>
+              <div class="settle-right">
+                <button class="btn-ghost btn-sm" data-why-toggle="${key}" aria-expanded="false" aria-controls="why-${key}">Why?</button>
+                <button class="btn-success btn-sm" data-mark-paid="${key}">Mark paid</button>
+                <div class="settle-amount" aria-label="${fmt(dispAmt)}">${fmt(dispAmt)}</div>
+              </div>
+            </div>
+            ${bankLine}
+            <div class="settle-why-block" id="why-${key}" role="note">${why}</div>
+          </div>
+        `;
+      }).join('');
+      els.settlementEmpty.style.display = settlements.length ? 'none' : 'block';
+    }
+
+    // ── Render: Balances ──────────────────────────────────────────────
+    function renderBalances(calc) {
+      if (!state.people.length) { els.balanceEmpty.style.display = 'block'; return; }
+      els.balanceEmpty.style.display = 'none';
+      els.balanceList.innerHTML = state.people.map(p => {
+        const bal = money(calc.balances[p.id]);
+        let badge = '';
+        let amtClass = 'neu';
+        let summaryLine = '';
+        if (bal > 0.009) {
+          badge = `<span class="badge badge-green">Gets back</span>`;
+          amtClass = 'pos'; summaryLine = `receives ${fmt(bal)}`;
+        } else if (bal < -0.009) {
+          badge = `<span class="badge badge-red">Needs to pay</span>`;
+          amtClass = 'neg'; summaryLine = `should pay ${fmt(Math.abs(bal))}`;
+        } else {
+          badge = `<span class="badge badge-muted">Settled ✓</span>`;
+          summaryLine = state.expenses.length ? 'fully settled' : '';
+        }
+        const sign = bal > 0.009 ? '+' : bal < -0.009 ? '−' : '';
+        return `
+          <div class="bal-item">
+            <div class="bal-left">
+              <div class="bal-name">${esc(p.name)}</div>
+              <div class="bal-sub">Paid ${fmt(calc.paid[p.id]||0)} · Owes ${fmt(calc.owed[p.id]||0)}</div>
+              ${summaryLine ? `<div class="hint" style="margin-top:3px">${summaryLine}</div>` : ''}
+            </div>
+            <div class="bal-right">
+              ${badge}
+              <div class="bal-amount ${amtClass}">${sign}${fmt(Math.abs(bal))}</div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ── Render: Stats ─────────────────────────────────────────────────
+    function renderStats(calc) {
+      const factor = sessionAdjFactor();
+      const adjTotal = calc.total * factor;
+      const hasAdj = Math.abs(factor - 1) > 0.001;
+      const total  = fmtNum(calc.total);
+      const people   = String(state.people.length);
+      const expenses = String(state.expenses.length);
+      els.statTotal.textContent = total;
+      els.statPeople.textContent = people;
+      els.statExpenses.textContent = expenses;
+      els.statTotalCard.textContent = total;
+      els.statPeopleCard.textContent = people;
+      els.statExpensesCard.textContent = expenses;
+      els.settleTotalDisplay.textContent = hasAdj ? fmt(adjTotal) : fmt(calc.total);
+      const badge = $('settleAdjBadge');
+      if (badge) {
+        if (hasAdj) {
+          badge.style.display = 'inline';
+          badge.textContent = `incl. session adj.`;
+        } else {
+          badge.style.display = 'none';
+        }
+      }
+    }
+
+    // ── Render: All ───────────────────────────────────────────────────
+    function render() {
+      renderPeople();
+      renderParticipantsAndPayer();
+      renderSharesEditor();
+      const calc = compute();
+      renderExpenses(calc.expenseBreakdown);
+      renderSettlement(calc.settlements, calc.balances);
+      renderBalances(calc);
+      renderStats(calc);
+      // Sync session title
+      if (els.sessionTitleInput.value !== (state.title || '')) {
+        els.sessionTitleInput.value = state.title || '';
+      }
+      autoAdvanceSteps();
+    }
+
+    // ── Settlement text (clipboard / txt export) ──────────────────────
+    // Format: session title (bold via emoji), then one line per payment,
+    // with optional bank line indented below each.
+    function buildSettlementText() {
+      const calc    = compute();
+      const factor  = sessionAdjFactor();
+      const title   = state.title || 'Split Bill Settlement';
+
+      const lines = [`💸 *${title}*`];
+
+      if (!calc.settlements.length) {
+        lines.push('Everyone is already settled ✓');
+      } else {
+        calc.settlements.forEach(tx => {
+          const fromP = state.people.find(p => p.id === tx.from);
+          const toP   = state.people.find(p => p.id === tx.to);
+          const amt   = fmt(tx.amount * factor);
+          lines.push(`${fromP?.name || '?'}  →  ${toP?.name || '?'}  :  ${amt}`);
+          if (toP?.bank) lines.push(`   🏦  Transfer to: ${toP.bank}`);
+        });
+      }
+
+      return lines.join('\n');
+    }
+
+    function importJson(file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        try {
+          const parsed = JSON.parse(reader.result);
+          const s = parsed.state || parsed;
+          if (!s || !Array.isArray(s.people) || !Array.isArray(s.expenses)) throw new Error('Invalid');
+          state = s;
+          if (!state.title) state.title = '';
+          if (parsed.currencyCode && CURRENCIES[parsed.currencyCode]) {
+            currency = { code: parsed.currencyCode, symbol: CURRENCIES[parsed.currencyCode] };
+            els.currencySelect.value = parsed.currencyCode;
+          }
+          save(); render();
+          toast('Import successful ✓');
+        } catch (_) {
+          toast('Could not import this file.', 'info');
+        }
+      };
+      reader.readAsText(file);
+    }
+
+    // ── Event delegation ──────────────────────────────────────────────
+    document.addEventListener('click', e => {
+      const t = e.target;
+      const rp = t.getAttribute('data-remove-person');
+      const re = t.getAttribute('data-remove-expense');
+      const etg = t.getAttribute('data-edit-toggle');
+      const sei = t.getAttribute('data-save-edit');
+      const cei = t.getAttribute('data-cancel-edit');
+      const mp = t.getAttribute('data-mark-paid');
+      const wt = t.getAttribute('data-why-toggle');
+      const tpl = t.getAttribute('data-template');
+
+      if (rp) { removePerson(rp); return; }
+      if (re) { removeExpense(re); return; }
+      if (etg) { $(`edit-form-${etg}`)?.classList.toggle('open'); return; }
+      if (sei) { saveInlineEdit(sei); return; }
+      if (cei) { $(`edit-form-${cei}`)?.classList.remove('open'); return; }
+      const vr = t.getAttribute('data-view-receipt');
+      const ti = t.getAttribute('data-toggle-items');
+      if (vr) { const el = $(`receipt-${vr}`); if (el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; t.textContent = el.style.display === 'none' ? '🧾 Receipt' : '🧾 Hide'; } return; }
+      if (ti) { const el = $(`items-${ti}`); if (el) { el.style.display = el.style.display === 'none' ? 'block' : 'none'; } return; }
+
+      // Bank account inline editing
+      const addBank  = t.getAttribute('data-add-bank')  || t.getAttribute('data-edit-bank');
+      const saveBank = t.getAttribute('data-save-bank');
+      const cancelBank = t.getAttribute('data-cancel-bank');
+      if (addBank) {
+        $(`bank-input-${addBank}`).style.display = 'block';
+        $(`bank-row-${addBank}`).style.display = 'none';
+        $(`bank-input-${addBank}`).querySelector('input').focus();
+        return;
+      }
+      if (saveBank) {
+        const inp = $(`bank-input-${saveBank}`).querySelector(`[data-bank-field="${saveBank}"]`);
+        const person = state.people.find(p => p.id === saveBank);
+        if (person && inp) { person.bank = inp.value.trim(); save(); render(); toast('Bank info saved ✓'); }
+        return;
+      }
+      if (cancelBank) {
+        $(`bank-input-${cancelBank}`).style.display = 'none';
+        $(`bank-row-${cancelBank}`).style.display = 'flex';
+        return;
+      }
+      if (mp) {
+        const card = $(`stl-${mp}`);
+        if (!card) return;
+        const isPaid = card.classList.toggle('paid-off');
+        t.textContent = isPaid ? '↩ Undo' : 'Mark paid';
+        return;
+      }
+      if (wt) { $(`why-${wt}`)?.classList.toggle('open'); return; }
+      if (tpl) {
+        const d = TEMPLATES[tpl];
+        if (d) { els.expenseTitle.value = d.title; els.expenseCategory.value = d.category; els.expenseAmount.focus(); }
+        return;
+      }
+    });
+
+    // Accordion toggle
+    $('advancedToggle').addEventListener('click', () => {
+      $('advancedAccordion').classList.toggle('open');
+    });
+
+    // checkbox visual feedback in participantsBox
+    els.participantsBox.addEventListener('change', e => {
+      if (e.target.type === 'checkbox') {
+        e.target.closest('.check-item')?.classList.toggle('checked-item', e.target.checked);
+        renderSharesEditor();
+      }
+    });
+
+    // Wiring
+    els.addPersonBtn.addEventListener('click', addPerson);
+    els.personName.addEventListener('keydown', e => { if (e.key === 'Enter') addPerson(); });
+    if (els.personBank) els.personBank.addEventListener('keydown', e => { if (e.key === 'Enter') addPerson(); });
+    els.addExpenseBtn.addEventListener('click', addExpense);
+    els.clearFormBtn.addEventListener('click', clearForm);
+    els.splitMode.addEventListener('change', renderSharesEditor);
+    els.sampleBtn.addEventListener('click', () => { loadSample(true); toast('Sample data loaded ✓'); });
+    // ── Export dropdown ───────────────────────────────────────────────
+    const exportBtn  = $('exportBtn');
+    const exportMenu = $('exportMenu');
+    const exportWrap = $('exportWrap');
+
+    exportBtn.addEventListener('click', e => {
+      e.stopPropagation();
+      const open = exportMenu.classList.toggle('open');
+      exportBtn.setAttribute('aria-expanded', String(open));
+    });
+    document.addEventListener('click', e => {
+      if (!exportWrap.contains(e.target)) {
+        exportMenu.classList.remove('open');
+        exportBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') {
+        exportMenu.classList.remove('open');
+        exportBtn.setAttribute('aria-expanded', 'false');
+      }
+    });
+
+    $('exportJsonBtn').addEventListener('click', () => {
+      exportMenu.classList.remove('open');
+      const slug = (state.title || 'data').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const blob = new Blob([JSON.stringify({ state, currencyCode: currency.code }, null, 2)], { type: 'application/json' });
+      const url  = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `split-bill-${slug}.json`; a.click();
+      URL.revokeObjectURL(url);
+      toast('JSON exported ✓');
+    });
+
+    $('exportTxtBtn').addEventListener('click', () => {
+      exportMenu.classList.remove('open');
+      const slug = (state.title || 'summary').replace(/[^a-z0-9]/gi, '-').toLowerCase();
+      const txt  = buildSettlementText();
+      const blob = new Blob([txt], { type: 'text/plain' });
+      const url  = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = `settlement-${slug}.txt`; a.click();
+      URL.revokeObjectURL(url);
+      toast('Text file exported ✓');
+    });
+
+    $('exportCopyBtn').addEventListener('click', () => {
+      exportMenu.classList.remove('open');
+      navigator.clipboard.writeText(buildSettlementText())
+        .then(() => toast('Settlement copied to clipboard ✓'))
+        .catch(() => toast('Could not copy — check permissions.', 'info'));
+    });
+
+    // Import via hidden file input (tucked into export dropdown)
+    const _importFile = document.createElement('input');
+    _importFile.type = 'file'; _importFile.accept = 'application/json'; _importFile.style.display = 'none';
+    document.body.appendChild(_importFile);
+    _importFile.addEventListener('change', e => {
+      const file = e.target.files?.[0];
+      if (file) importJson(file);
+      e.target.value = '';
+    });
+    $('importJsonBtn').addEventListener('click', () => {
+      exportMenu.classList.remove('open');
+      _importFile.click();
+    });
+
+    // ── Session tax/tip engine ────────────────────────────────────────
+    let taxPopoverMode = 'pct';
+
+    function renderTaxChips() {
+      const adjs = state.sessionAdjustments || [];
+      const hint = $('taxNoneHint');
+      const row  = $('taxChipRow');
+      // Remove all existing chips (keep hint)
+      row.querySelectorAll('.tax-chip').forEach(c => c.remove());
+      hint.style.display = adjs.length ? 'none' : 'inline';
+      adjs.forEach((adj, i) => {
+        const chip = document.createElement('span');
+        chip.className = `tax-chip ${adj.type === 'discount' ? 'disc-type' : 'tax-type'}`;
+        chip.setAttribute('role', 'status');
+        chip.setAttribute('aria-label', `${adj.label || adj.type}: ${adj.value}${adj.mode === 'pct' ? '%' : ' flat'}`);
+        const sign = adj.type === 'discount' ? '−' : '+';
+        chip.innerHTML = `${adj.label || (adj.type === 'tip' ? 'Tip' : adj.type === 'discount' ? 'Disc.' : 'Tax')} ${sign}${adj.value}${adj.mode === 'pct' ? '%' : ''}<span class="chip-x" data-remove-adj="${i}" aria-label="Remove adjustment" role="button" tabindex="0">×</span>`;
+        row.insertBefore(chip, $('taxAddBtn'));
+      });
+    }
+
+    $('taxChipRow').addEventListener('click', e => {
+      const idx = e.target.getAttribute('data-remove-adj');
+      if (idx !== null) {
+        state.sessionAdjustments.splice(Number(idx), 1);
+        save(); renderTaxChips(); render();
+        toast('Adjustment removed.');
+      }
+    });
+
+    $('taxAddBtn').addEventListener('click', e => {
+      e.stopPropagation();
+      const popover = $('taxPopover');
+      const btn = $('taxAddBtn');
+      const rect = btn.getBoundingClientRect();
+      popover.style.top  = (rect.bottom + window.scrollY + 6) + 'px';
+      popover.style.left = Math.max(8, rect.left + window.scrollX - 60) + 'px';
+      popover.classList.toggle('open');
+    });
+
+    document.addEventListener('click', e => {
+      if (!$('taxPopover').contains(e.target) && e.target !== $('taxAddBtn')) {
+        $('taxPopover').classList.remove('open');
+      }
+    });
+
+    $('taxModePct').addEventListener('click', () => {
+      taxPopoverMode = 'pct';
+      $('taxModePct').classList.add('active');   $('taxModePct').setAttribute('aria-pressed','true');
+      $('taxModeFlat').classList.remove('active'); $('taxModeFlat').setAttribute('aria-pressed','false');
+      $('taxValueInput').placeholder = 'e.g. 10  (%)';
+    });
+    $('taxModeFlat').addEventListener('click', () => {
+      taxPopoverMode = 'flat';
+      $('taxModeFlat').classList.add('active');   $('taxModeFlat').setAttribute('aria-pressed','true');
+      $('taxModePct').classList.remove('active');  $('taxModePct').setAttribute('aria-pressed','false');
+      $('taxValueInput').placeholder = 'e.g. 50';
+    });
+    $('taxCancelBtn').addEventListener('click', () => $('taxPopover').classList.remove('open'));
+    $('taxApplyBtn').addEventListener('click', () => {
+      const val = parseFloat($('taxValueInput').value);
+      if (!isFinite(val) || val <= 0) { toast('Enter a value > 0.', 'info'); return; }
+      const adj = {
+        type:  $('taxTypeSelect').value,
+        label: $('taxLabelInput').value.trim(),
+        mode:  taxPopoverMode,
+        value: val
+      };
+      if (!state.sessionAdjustments) state.sessionAdjustments = [];
+      state.sessionAdjustments.push(adj);
+      $('taxValueInput').value = '';
+      $('taxLabelInput').value = '';
+      $('taxPopover').classList.remove('open');
+      save(); renderTaxChips(); render();
+      toast(`${adj.label || adj.type} applied to all expenses ✓`);
+    });
+
+    function sessionAdjFactor() {
+      const adjs = state.sessionAdjustments || [];
+      if (!adjs.length) return 1;
+      const base = state.expenses.reduce((s, e) => s + money(e.amount), 0);
+      if (base <= 0) return 1;
+      let tax = 0, disc = 0;
+      adjs.forEach(a => {
+        const amt = a.mode === 'pct' ? base * a.value / 100 : a.value;
+        if (a.type === 'discount') disc += amt;
+        else tax += amt;
+      });
+      return Math.max(0, (base + tax - disc)) / base;
+    }
+    els.resetBtn.addEventListener('click', () => {
+      if (!confirm('Reset all data? This cannot be undone.')) return;
+      state = { title: '', people: [], expenses: [] };
+      save(); render();
+      toast('Reset complete.');
+    });
+    els.currencySelect.addEventListener('change', () => {
+      const code = els.currencySelect.value;
+      currency = { code, symbol: CURRENCIES[code] };
+      save(); render();
+    });
+    els.copySettlementBtn.addEventListener('click', () => {
+      if (!state.expenses.length) { toast('No expenses to summarise yet.', 'info'); return; }
+      navigator.clipboard.writeText(buildSettlementText())
+        .then(() => toast('Settlement copied to clipboard ✓'))
+        .catch(() => toast('Could not copy — check permissions.', 'info'));
+    });
+    els.searchInput.addEventListener('input', () => { const c = compute(); renderExpenses(c.expenseBreakdown); });
+    els.filterCategory.addEventListener('change', () => { const c = compute(); renderExpenses(c.expenseBreakdown); });
+    els.filterPayer.addEventListener('change', () => { const c = compute(); renderExpenses(c.expenseBreakdown); });
+    els.sessionTitleInput.addEventListener('input', () => {
+      state.title = els.sessionTitleInput.value;
+      save();
+    });
+
+    // ── Step accordion engine ─────────────────────────────────────────
+    // Each step card head toggles its body. Auto-advance: opening step N
+    // auto-collapses others when on mobile (<= 768px).
+    const STEP_HEADS = ['stepHead1','stepHead2','stepHead3','stepHeadSettle','stepHeadStats','stepHeadBal'];
+
+    function setStepOpen(headId, open, animate = true) {
+      const head = $(headId);
+      if (!head) return;
+      const bodyId = head.getAttribute('aria-controls');
+      const body = $(bodyId);
+      if (!body) return;
+      head.classList.toggle('open', open);
+      body.classList.toggle('open', open);
+      head.setAttribute('aria-expanded', String(open));
+    }
+
+    function initStepAccordion() {
+      STEP_HEADS.forEach(headId => {
+        const head = $(headId);
+        if (!head) return;
+        head.addEventListener('click', () => {
+          const isOpen = head.classList.contains('open');
+          const willOpen = !isOpen;
+          // On mobile, collapse others when opening one
+          if (willOpen && window.innerWidth <= 768) {
+            STEP_HEADS.forEach(hid => { if (hid !== headId) setStepOpen(hid, false); });
+          }
+          setStepOpen(headId, willOpen);
+        });
+        head.addEventListener('keydown', e => {
+          if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); head.click(); }
+        });
+      });
+    }
+
+    // Auto-advance: open Step 2 when first person added, Step 3 when first expense added
+    function autoAdvanceSteps() {
+      const hasPeople   = state.people.length >= 2;
+      const hasExpenses = state.expenses.length > 0;
+      const s2head = $('stepHead2');
+      const s3head = $('stepHead3');
+      if (!s2head || !s3head) return;
+      // Update step number done-style
+      const n1 = $('stepNum1'), n2 = $('stepNum2'), n3 = $('stepNum3');
+      if (n1) n1.classList.toggle('done', hasPeople);
+      if (n2) n2.classList.toggle('done', hasExpenses);
+      // Auto-open step 2 when 2 people exist and it hasn't been opened yet
+      if (hasPeople && !s2head.classList.contains('open') && !s2head.dataset.manuallyClosed) {
+        setStepOpen('stepHead2', true);
+      }
+      if (hasExpenses && !s3head.classList.contains('open') && !s3head.dataset.manuallyClosed) {
+        setStepOpen('stepHead3', true);
+      }
+    }
+    // Track manual closes
+    STEP_HEADS.forEach(hid => {
+      const h = $(hid);
+      if (h) h.addEventListener('click', () => {
+        if (h.classList.contains('open') === false) h.dataset.manuallyClosed = '1';
+        else delete h.dataset.manuallyClosed;
+      });
+    });
+
+    // ── Session manager (saved trips) ─────────────────────────────────
+    const SESSION_STORE_KEY     = 'splitBillPro_sessions';
+    const SESSION_LAST_KEY      = 'splitBillPro_lastSession';
+
+    function loadAllSessions() {
+      try { return JSON.parse(localStorage.getItem(SESSION_STORE_KEY) || '{}'); }
+      catch { return {}; }
+    }
+    function saveAllSessions(obj) {
+      localStorage.setItem(SESSION_STORE_KEY, JSON.stringify(obj));
+    }
+    function refreshSessionDropdown() {
+      const sel = $('savedSessionSelect');
+      if (!sel) return;
+      const sessions = loadAllSessions();
+      const keys = Object.keys(sessions).sort();
+      const cur = sel.value;
+      sel.innerHTML = '<option value="">— select session —</option>';
+      keys.forEach(k => {
+        const opt = document.createElement('option');
+        opt.value = k; opt.textContent = k;
+        if (k === cur) opt.selected = true;
+        sel.appendChild(opt);
+      });
+    }
+
+    $('saveSessionBtn').addEventListener('click', () => {
+      const title = (state.title || '').trim() || `Session ${new Date().toLocaleDateString()}`;
+      const sessions = loadAllSessions();
+      sessions[title] = { state: JSON.parse(JSON.stringify(state)), currencyCode: currency.code };
+      saveAllSessions(sessions);
+      localStorage.setItem(SESSION_LAST_KEY, title);
+      refreshSessionDropdown();
+      $('savedSessionSelect').value = title;
+      toast(`"${title}" saved ✓`);
+    });
+
+    function doLoadSession(key) {
+      const sessions = loadAllSessions();
+      const snap = sessions[key];
+      if (!snap) { toast('Session not found.', 'info'); return; }
+      const s = snap.state;
+      if (!s || !Array.isArray(s.people) || !Array.isArray(s.expenses)) { toast('Invalid session data.', 'info'); return; }
+      state = s;
+      if (!state.sessionAdjustments) state.sessionAdjustments = [];
+      if (snap.currencyCode && CURRENCIES[snap.currencyCode]) {
+        currency = { code: snap.currencyCode, symbol: CURRENCIES[snap.currencyCode] };
+        els.currencySelect.value = snap.currencyCode;
+      }
+      save(); render(); renderTaxChips();
+      localStorage.setItem(SESSION_LAST_KEY, key);
+    }
+
+    $('loadSessionBtn').addEventListener('click', () => {
+      const key = $('savedSessionSelect').value;
+      if (!key) { toast('Select a session to load.', 'info'); return; }
+      doLoadSession(key);
+      toast(`"${key}" loaded ✓`);
+    });
+
+    $('delSessionBtn').addEventListener('click', () => {
+      const key = $('savedSessionSelect').value;
+      if (!key) { toast('Select a session to delete.', 'info'); return; }
+      if (!confirm(`Delete saved session "${key}"?`)) return;
+      const sessions = loadAllSessions();
+      delete sessions[key];
+      saveAllSessions(sessions);
+      const last = localStorage.getItem(SESSION_LAST_KEY);
+      if (last === key) localStorage.removeItem(SESSION_LAST_KEY);
+      refreshSessionDropdown();
+      toast(`"${key}" deleted.`);
+    });
+
+    // ── Rename session ────────────────────────────────────────────────
+    const renameOverlay = $('renameOverlay');
+    let _renameTarget = '';
+
+    $('renameSessionBtn').addEventListener('click', () => {
+      const key = $('savedSessionSelect').value;
+      if (!key) { toast('Select a session to rename.', 'info'); return; }
+      _renameTarget = key;
+      $('renameInput').value = key;
+      renameOverlay.classList.add('open');
+      setTimeout(() => $('renameInput').focus(), 80);
+    });
+    $('renameConfirmBtn').addEventListener('click', () => {
+      const newName = $('renameInput').value.trim();
+      if (!newName) { toast('Enter a new name.', 'info'); return; }
+      if (newName === _renameTarget) { renameOverlay.classList.remove('open'); return; }
+      const sessions = loadAllSessions();
+      if (sessions[newName]) { toast(`"${newName}" already exists.`, 'info'); return; }
+      sessions[newName] = sessions[_renameTarget];
+      delete sessions[_renameTarget];
+      saveAllSessions(sessions);
+      const last = localStorage.getItem(SESSION_LAST_KEY);
+      if (last === _renameTarget) localStorage.setItem(SESSION_LAST_KEY, newName);
+      refreshSessionDropdown();
+      $('savedSessionSelect').value = newName;
+      renameOverlay.classList.remove('open');
+      toast(`Renamed to "${newName}" ✓`);
+    });
+    $('renameCancelBtn').addEventListener('click', () => renameOverlay.classList.remove('open'));
+    renameOverlay.addEventListener('click', e => { if (e.target === renameOverlay) renameOverlay.classList.remove('open'); });
+    $('renameInput').addEventListener('keydown', e => { if (e.key === 'Enter') $('renameConfirmBtn').click(); });
+
+    // ── Auto-load last session on boot ────────────────────────────────
+    function autoLoadLastSession() {
+      const last = localStorage.getItem(SESSION_LAST_KEY);
+      if (!last) return;
+      const sessions = loadAllSessions();
+      if (!sessions[last]) return;
+      doLoadSession(last);
+      $('savedSessionSelect').value = last;
+      // Show auto-load badge briefly
+      const bar = $('sessionManager');
+      if (bar) {
+        const badge = document.createElement('span');
+        badge.className = 'autoload-badge';
+        badge.textContent = `↩ Resumed: ${last}`;
+        bar.appendChild(badge);
+        setTimeout(() => badge.remove(), 3500);
+      }
+    }
+
+    // ── Mobile bottom navigation ──────────────────────────────────────
+    document.querySelectorAll('.mobile-nav-btn[data-scroll-to]').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = $(btn.dataset.scrollTo);
+        if (!target) return;
+        // Open the step if it's collapsed
+        const headId = btn.dataset.scrollTo.replace('Card', 'Head');
+        const head = $(headId);
+        if (head && !head.classList.contains('open')) setStepOpen(headId, true);
+        target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Set active
+        document.querySelectorAll('.mobile-nav-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    const scanNavBtn = $('scanNavBtn');
+    if (scanNavBtn) {
+      scanNavBtn.addEventListener('click', () => {
+        window.ScanReceiptOCR && window.ScanReceiptOCR.open();
+      });
+    }
+
+    // Update active mobile nav on scroll
+    const navTargets = ['stepCard1','stepCard2','stepCard3','stepCardSettle'];
+    const mobileNavBtns = document.querySelectorAll('.mobile-nav-btn[data-scroll-to]');
+    let scrollTicking = false;
+    window.addEventListener('scroll', () => {
+      if (scrollTicking) return;
+      scrollTicking = true;
+      requestAnimationFrame(() => {
+        let current = '';
+        navTargets.forEach(id => {
+          const el = $(id);
+          if (el && el.getBoundingClientRect().top <= 100) current = id;
+        });
+        mobileNavBtns.forEach(btn => {
+          btn.classList.toggle('active', btn.dataset.scrollTo === current);
+        });
+        scrollTicking = false;
+      });
+    }, { passive: true });
+
+    // ── Help panel ────────────────────────────────────────────────────
+    const helpOverlay = $('helpOverlay');
+
+    $('helpBtn').addEventListener('click', () => {
+      helpOverlay.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    });
+    $('helpCloseBtn').addEventListener('click', () => {
+      helpOverlay.classList.remove('open');
+      document.body.style.overflow = '';
+    });
+    helpOverlay.addEventListener('click', e => {
+      if (e.target === helpOverlay) { helpOverlay.classList.remove('open'); document.body.style.overflow = ''; }
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && helpOverlay.classList.contains('open')) {
+        helpOverlay.classList.remove('open'); document.body.style.overflow = '';
+      }
+    });
+
+    // Help tabs
+    $('helpTabHow').addEventListener('click', () => {
+      $('helpTabHow').classList.add('active'); $('helpTabHow').setAttribute('aria-selected','true');
+      $('helpTabFaq').classList.remove('active'); $('helpTabFaq').setAttribute('aria-selected','false');
+      $('helpHow').classList.add('active'); $('helpFaq').classList.remove('active');
+    });
+    $('helpTabFaq').addEventListener('click', () => {
+      $('helpTabFaq').classList.add('active'); $('helpTabFaq').setAttribute('aria-selected','true');
+      $('helpTabHow').classList.remove('active'); $('helpTabHow').setAttribute('aria-selected','false');
+      $('helpFaq').classList.add('active'); $('helpHow').classList.remove('active');
+    });
+
+    // FAQ accordion
+    document.querySelectorAll('.faq-item').forEach(item => {
+      item.querySelector('.faq-q').addEventListener('click', () => item.classList.toggle('open'));
+    });
+
+    // Boot
+    load();
+    render();
+    renderTaxChips();
+    initStepAccordion();
+    refreshSessionDropdown();
+    autoLoadLastSession();
+
+    // ── Dark mode ─────────────────────────────────────────────────────
+    (function initTheme() {
+      const root = document.documentElement;
+      const btn  = $('themeToggleBtn');
+      const saved = localStorage.getItem('splitBill_theme');
+
+      function applyTheme(theme) {
+        if (theme === 'dark') {
+          root.setAttribute('data-theme', 'dark');
+          btn.textContent = '☀️';
+          btn.setAttribute('aria-label', 'Switch to light mode');
+        } else {
+          root.setAttribute('data-theme', 'light');
+          btn.textContent = '🌙';
+          btn.setAttribute('aria-label', 'Switch to dark mode');
+        }
+      }
+
+      // Initialise: saved preference first, else OS preference
+      const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+      applyTheme(saved || (prefersDark ? 'dark' : 'light'));
+
+      btn.addEventListener('click', () => {
+        const isDark = root.getAttribute('data-theme') === 'dark';
+        const next = isDark ? 'light' : 'dark';
+        localStorage.setItem('splitBill_theme', next);
+        applyTheme(next);
+      });
+
+      // React if OS preference changes and user hasn't overridden
+      window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+        if (!localStorage.getItem('splitBill_theme')) {
+          applyTheme(e.matches ? 'dark' : 'light');
+        }
+      });
+    })();
+
+    window.splitBillPro = { getState: () => state, compute, render };
+
+    // Wire "Scan Receipt" button → opens OCR modal
+    document.getElementById('openScanBtn').addEventListener('click', () => {
+      window.ScanReceiptOCR.open();
+    });
+  })();
+</script>
+
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     SCAN RECEIPT OCR MODULE  v3
+     LINE-style avatar-tap assignment + proportional tax/discount
+     Exposes window.ScanReceiptOCR.open()
+═══════════════════════════════════════════════════════════════════ -->
+<script>
+(function () {
+  'use strict';
+
+  /* ── Palette: up to 8 distinct person colours ─────────────────── */
+  const PALETTE = [
+    { bg: '#3b5bdb', fg: '#fff' },  // blue
+    { bg: '#087f5b', fg: '#fff' },  // green
+    { bg: '#c92a2a', fg: '#fff' },  // red
+    { bg: '#7048e8', fg: '#fff' },  // violet
+    { bg: '#e67700', fg: '#fff' },  // orange
+    { bg: '#0c8599', fg: '#fff' },  // teal
+    { bg: '#862e9c', fg: '#fff' },  // grape
+    { bg: '#495057', fg: '#fff' },  // grey
+  ];
+  function initials(name) {
+    return name.trim().split(/\s+/).map(w => w[0]).join('').toUpperCase().slice(0, 2);
+  }
+  function colourFor(idx) { return PALETTE[idx % PALETTE.length]; }
+
+  /* ── DOM refs ─────────────────────────────────────────────────── */
+  const $ = id => document.getElementById(id);
+  const overlay       = $('ocrOverlay');
+  const closeBtn      = $('ocrCloseBtn');
+  const dropZone      = $('ocrDropZone');
+  const fileInput     = $('ocrFileInput');
+  const previewWrap   = $('ocrPreviewWrap');
+  const previewImg    = $('ocrPreviewImg');
+  const changeImgBtn  = $('ocrChangeImgBtn');
+  const langSelect    = $('ocrLangSelect');
+  const errorEl       = $('ocrError');
+  const progressEl    = $('ocrProgress');
+  const progressBar   = $('ocrProgressBar');
+  const progressLbl   = $('ocrProgressLabel');
+  const ocrSpinner    = $('ocrSpinner');
+  const scanBtn       = $('ocrScanBtn');
+  const resultsEl     = $('ocrResults');
+  const itemList      = $('ocrItemList');
+  const rawEditSection = $('ocrRawEditSection');
+  const rawEditBox     = $('ocrRawEditBox');
+  const reparseBtn     = $('ocrReparseBtn');
+  const addRowBtn    = $('ocrAddRowBtn');
+  // rawToggle/rawText removed — replaced by ocrRawEditBox textarea
+  const totalCheck   = $('ocrTotalCheck');
+  const detectedRow  = $('ocrDetectedTotalRow');
+  const detectedVal  = $('ocrDetectedTotalVal');
+  const footer       = $('ocrModalFooter');
+  const importBtn    = $('ocrImportBtn');
+  const resetBtn     = $('ocrResetBtn');
+  const peopleBar    = $('ocrPeopleBar');
+  const peopleBarRow = $('ocrPeopleBarRow');
+  const adjHead      = $('ocrAdjHead');
+  const adjRows      = $('ocrAdjRows');
+  const adjAddBtn    = $('ocrAdjAddBtn');
+  const adjBadge     = $('ocrAdjBadge');
+  const adjSummary   = $('ocrAdjSummary');
+  const adjSubtotal  = $('ocrAdjSubtotal');
+  const adjTaxRow    = $('ocrAdjTaxRow');
+  const adjTaxVal    = $('ocrAdjTaxVal');
+  const adjDiscRow   = $('ocrAdjDiscRow');
+  const adjDiscVal   = $('ocrAdjDiscVal');
+  const adjTotal     = $('ocrAdjTotal');
+
+  /* ── State ────────────────────────────────────────────────────── */
+  let selectedFile  = null;
+  let detectedTotal = null;
+  let parsedItems   = [];   // [{ name, price }]
+  let adjustments   = [];   // pre-filled from OCR
+
+  /* ── Helpers ──────────────────────────────────────────────────── */
+  function esc(s) {
+    return String(s ?? '').replace(/&/g,'&amp;').replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#039;');
+  }
+  function getAppPeople() {
+    return window.splitBillPro ? window.splitBillPro.getState().people : [];
+  }
+  function showError(msg)  { errorEl.textContent = msg; errorEl.classList.add('visible'); }
+  function clearError()    { errorEl.classList.remove('visible'); errorEl.textContent = ''; }
+  function setProgress(pct, label) {
+    progressEl.classList.add('visible');
+    progressBar.style.width = pct + '%';
+    progressLbl.textContent = label;
+    if (ocrSpinner) ocrSpinner.classList.add('visible');
+  }
+  function hideProgress() {
+    progressEl.classList.remove('visible'); progressBar.style.width = '0%';
+    if (ocrSpinner) ocrSpinner.classList.remove('visible');
+  }
+  function appToast(msg, type = 'success') {
+    const wrap = $('toast-wrap'); if (!wrap) return;
+    const el = document.createElement('div');
+    el.className = `toast ${type}`; el.textContent = msg;
+    wrap.appendChild(el);
+    requestAnimationFrame(() => requestAnimationFrame(() => el.classList.add('show')));
+    setTimeout(() => { el.classList.remove('show'); setTimeout(() => el.remove(), 300); }, 3200);
+  }
+
+  /* ── Open / Close ─────────────────────────────────────────────── */
+  function openModal() {
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    buildPeopleBar();
+  }
+  function closeModal() {
+    overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  }
+
+  /* ── File handling ────────────────────────────────────────────── */
+  function handleFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      showError('Please upload an image file (JPG, PNG, WEBP, etc.).');
+      return;
+    }
+    clearError();
+    selectedFile = file;
+    const url = URL.createObjectURL(file);
+    previewImg.src = url;
+    previewImg.onload = () => URL.revokeObjectURL(url);
+    previewWrap.classList.add('has-img');
+    scanBtn.disabled = false;
+    resetResults();
+  }
+  fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
+  changeImgBtn.addEventListener('click', e => { e.stopPropagation(); fileInput.click(); });
+  dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+  dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+  dropZone.addEventListener('drop', e => {
+    e.preventDefault(); dropZone.classList.remove('drag-over');
+    const f = e.dataTransfer.files[0]; if (f) handleFile(f);
+  });
+
+  /* ── OCR ──────────────────────────────────────────────────────── */
+  scanBtn.addEventListener('click', runOCR);
+  // Lazy-load Tesseract only when first needed
+  let tesseractLoaded = false;
+  async function ensureTesseract() {
+    if (tesseractLoaded || window.Tesseract) { tesseractLoaded = true; return; }
+    setProgress(3, 'Loading Tesseract.js (first use)…');
+    await new Promise((resolve, reject) => {
+      const s = document.createElement('script');
+      s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js';
+      s.onload = () => { tesseractLoaded = true; resolve(); };
+      s.onerror = () => reject(new Error('Failed to load Tesseract.js'));
+      document.head.appendChild(s);
+    });
+  }
+
+  async function runOCR() {
+    if (!selectedFile) return;
+    clearError(); scanBtn.disabled = true;
+    resultsEl.classList.remove('visible'); footer.style.display = 'none';
+    if (rawEditSection) rawEditSection.style.display = 'none';
+    setProgress(5, 'Loading OCR engine…');
+    try {
+      await ensureTesseract();
+      const lang = langSelect.value;
+      const worker = await Tesseract.createWorker(lang, 1, {
+        logger: m => {
+          if      (m.status === 'recognizing text')             setProgress(Math.round(5 + m.progress * 88), `Recognizing… ${Math.round(m.progress*100)}%`);
+          else if (m.status === 'loading tesseract core')       setProgress(10, 'Loading Tesseract core…');
+          else if (m.status === 'initializing tesseract')       setProgress(20, 'Initializing engine…');
+          else if (m.status === 'loading language traineddata') setProgress(35, 'Loading language data…');
+          else if (m.status === 'initializing api')             setProgress(50, 'Preparing OCR API…');
+        }
+      });
+      setProgress(94, 'Extracting text…');
+      const { data: { text } } = await worker.recognize(selectedFile);
+      await worker.terminate();
+      setProgress(100, 'Done! Review and edit the text below, then re-parse.');
+      setTimeout(hideProgress, 800);
+
+      // Show editable raw text FIRST — user can correct before parsing
+      if (rawEditSection && rawEditBox) {
+        rawEditBox.value = text;
+        rawEditSection.style.display = 'block';
+      }
+      processOCRText(text);
+    } catch (err) {
+      hideProgress(); scanBtn.disabled = false;
+      console.error('OCR error:', err);
+      showError('OCR failed: ' + (err.message || 'Unknown error. Check console.'));
+    }
+  }
+
+  // Re-parse button: user edits raw text then clicks this
+  if (reparseBtn) {
+    reparseBtn.addEventListener('click', () => {
+      const edited = rawEditBox ? rawEditBox.value : '';
+      if (!edited.trim()) { return; }
+      processOCRText(edited);
+      scanBtn.disabled = false;
+    });
+  }
+
+  /* ── Receipt parsing ──────────────────────────────────────────── */
+  function processOCRText(raw) {
+    // rawEditBox is updated in runOCR before processOCRText; keep in sync
+    if (rawEditBox && !rawEditBox.value) rawEditBox.value = raw;
+    const lines = raw.split('\n').map(l => l.trim()).filter(Boolean);
+    detectedTotal = null; parsedItems = []; adjustments = [];
+
+    const TOTAL_RE = /\b(grand\s*total|total\s*amount|total|合計|總計|금액합계)\b/i;
+    const TAX_RE   = /\b(tax|vat|gst|consumption\s*tax|service\s*tax|service\s*charge)\b/i;
+    const DISC_RE  = /\b(discount|coupon|promo|rebate|off)\b/i;
+    const SKIP_RE  = /\b(subtotal|sub\s*total|change|cash|tip|receipt|thank|welcome|table|order|tel|phone|fax|address|www\.|http|date|time|invoice|bill)\b/i;
+    const PRICE_RE = /(?:NT\$|TWD|USD|\$|€|£|¥|฿|Rp|RM|S\$|A\$|C\$)?\s*([\d,，０-９]+(?:[.．][\d０-９]{1,2})?)\s*$/;
+
+    for (const line of lines) {
+      const norm = line
+        .replace(/[０-９]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+        .replace(/[，]/g, ',');
+      const pm = norm.match(PRICE_RE);
+      if (!pm) continue;
+      const price = parseFloat(pm[1].replace(/,/g, ''));
+      if (!isFinite(price) || price <= 0) continue;
+      const nameRaw = norm.slice(0, norm.lastIndexOf(pm[0])).replace(/[\s:·\-–—]+$/, '').trim();
+      if (!nameRaw) continue;
+      if (TOTAL_RE.test(nameRaw)) { if (detectedTotal === null) detectedTotal = price; continue; }
+      if (TAX_RE.test(nameRaw))   { adjustments.push({ type: 'tax',      label: nameRaw, value: price, mode: 'flat' }); continue; }
+      if (DISC_RE.test(nameRaw))  { adjustments.push({ type: 'discount', label: nameRaw, value: price, mode: 'flat' }); continue; }
+      if (SKIP_RE.test(nameRaw) || nameRaw.length < 2) continue;
+      parsedItems.push({ name: nameRaw, price });
+    }
+    renderResults();
+  }
+
+  /* ── People bar ───────────────────────────────────────────────── */
+  function buildPeopleBar() {
+    const people = getAppPeople();
+    if (!people.length) { peopleBar.style.display = 'none'; return; }
+    peopleBar.style.display = 'block';
+    peopleBarRow.innerHTML = '';
+
+    people.forEach((p, i) => {
+      const c = colourFor(i);
+      const chip = document.createElement('button');
+      chip.className = 'ocr-assignall-btn solo';
+      chip.innerHTML = `<span style="display:inline-flex;align-items:center;gap:5px">
+        <span style="width:18px;height:18px;border-radius:50%;background:${c.bg};color:${c.fg};font-size:9px;font-weight:800;display:inline-flex;align-items:center;justify-content:center">${esc(initials(p.name))}</span>
+        ${esc(p.name)} only
+      </span>`;
+      chip.title = `Assign all items to ${p.name} only`;
+      chip.addEventListener('click', () => assignAll(p.id));
+      peopleBarRow.appendChild(chip);
+    });
+
+    // "Everyone" button
+    const allBtn = document.createElement('button');
+    allBtn.className = 'ocr-assignall-btn all';
+    allBtn.textContent = '✓ Everyone';
+    allBtn.addEventListener('click', () => assignAll('everyone'));
+    peopleBarRow.appendChild(allBtn);
+  }
+
+  function assignAll(targetId) {
+    itemList.querySelectorAll('.ocr-item-row').forEach(row => {
+      row.querySelectorAll('.ocr-avatar').forEach(av => {
+        const active = targetId === 'everyone' || targetId === av.dataset.pid;
+        setAvatar(av, active);
+      });
+    });
+    recalcSummary();
+  }
+
+  /* ── Per-item row (LINE style) ────────────────────────────────── */
+  function renderResults() {
+    buildPeopleBar();
+    itemList.innerHTML = '';
+    if (!parsedItems.length) {
+      itemList.innerHTML = `<div style="padding:20px;text-align:center;color:var(--text-3);font-size:13px;font-weight:600">No items detected — try a clearer photo, or add items manually.</div>`;
+    } else {
+      parsedItems.forEach(item => appendItemRow(item));
+    }
+    adjRows.innerHTML = '';
+    adjustments.forEach(adj => appendAdjRow(adj));
+    updateAdjBadge();
+    recalcSummary();
+    if (detectedTotal !== null) {
+      detectedRow.style.display = 'flex';
+      detectedVal.textContent = detectedTotal.toFixed(2);
+    } else {
+      detectedRow.style.display = 'none';
+    }
+    resultsEl.classList.add('visible');
+    footer.style.display = 'flex';
+    scanBtn.disabled = false;
+  }
+
+  function appendItemRow(item) {
+    const people = getAppPeople();
+    const row    = document.createElement('div');
+    row.className = 'ocr-item-row';
+
+    /* Avatar strip — one bubble per person, ALL UNASSIGNED by default */
+    const avatarHtml = people.map((p, i) => {
+      const c = colourFor(i);
+      return `<div class="ocr-avatar unassigned" data-pid="${esc(p.id)}" data-pidx="${i}"
+        style="background:${c.bg};color:${c.fg}"
+        title="${esc(p.name)}">${esc(initials(p.name))}</div>`;
+    }).join('');
+
+    row.innerHTML = `
+      <div class="ocr-item-info">
+        <input type="text"   class="ocr-name"  value="${esc(item.name)}"
+               placeholder="Item name" />
+        <div class="ocr-item-price-row">
+          <input type="number" class="ocr-price" value="${item.price > 0 ? item.price.toFixed(2) : ''}"
+                 min="0" step="0.01" placeholder="0.00" />
+          <span class="ocr-item-adj-tag" title="Adjusted price after tax/discount"></span>
+        </div>
+      </div>
+      <div class="ocr-item-right">
+        <div class="ocr-avatars">${avatarHtml}</div>
+        <button class="ocr-item-delete" title="Remove item">&#x2715;</button>
+      </div>`;
+
+    /* Avatar click → toggle assignment */
+    row.querySelectorAll('.ocr-avatar').forEach(av => {
+      av.addEventListener('click', () => {
+        setAvatar(av, av.classList.contains('unassigned'));
+        recalcSummary();
+      });
+    });
+
+    row.querySelector('.ocr-price').addEventListener('input', recalcSummary);
+    row.querySelector('.ocr-item-delete').addEventListener('click', () => {
+      row.remove(); recalcSummary();
+    });
+
+    itemList.appendChild(row);
+  }
+
+  function setAvatar(av, active) {
+    av.classList.toggle('unassigned', !active);
+  }
+
+  addRowBtn.addEventListener('click', () => {
+    appendItemRow({ name: '', price: 0 });
+    const last = itemList.lastElementChild;
+    if (last) last.querySelector('.ocr-name').focus();
+    recalcSummary();
+  });
+
+  /* ── Tax / Discount rows ──────────────────────────────────────── */
+  adjHead.addEventListener('click', () => $('ocrAdjustments').classList.toggle('open'));
+  adjAddBtn.addEventListener('click', () => {
+    appendAdjRow({ type: 'tax', label: '', value: 0, mode: 'pct' });
+    $('ocrAdjustments').classList.add('open');
+  });
+
+  function appendAdjRow(adj) {
+    const row = document.createElement('div');
+    row.className = 'ocr-adj-row';
+    row.innerHTML = `
+      <select class="adj-type">
+        <option value="tax"      ${adj.type==='tax'      ?'selected':''}>Tax/Service</option>
+        <option value="discount" ${adj.type==='discount' ?'selected':''}>Discount</option>
+      </select>
+      <input type="text"   class="adj-label" value="${esc(adj.label)}" placeholder="e.g. VAT 10%" />
+      <select class="adj-mode">
+        <option value="pct"  ${adj.mode==='pct'  ?'selected':''}>%</option>
+        <option value="flat" ${adj.mode==='flat' ?'selected':''}>flat</option>
+      </select>
+      <input type="number" class="adj-value" value="${adj.value > 0 ? adj.value : ''}" min="0" step="0.01" placeholder="0" />
+      <button class="ocr-adj-del">&#x2212;</button>`;
+    row.querySelector('.adj-type').addEventListener('change',  recalcSummary);
+    row.querySelector('.adj-mode').addEventListener('change',  recalcSummary);
+    row.querySelector('.adj-value').addEventListener('input',  recalcSummary);
+    row.querySelector('.ocr-adj-del').addEventListener('click', () => {
+      row.remove(); updateAdjBadge(); recalcSummary();
+    });
+    adjRows.appendChild(row);
+    updateAdjBadge(); recalcSummary();
+  }
+
+  function readAdjustments() {
+    return Array.from(adjRows.querySelectorAll('.ocr-adj-row')).map(r => ({
+      type:  r.querySelector('.adj-type').value,
+      mode:  r.querySelector('.adj-mode').value,
+      value: parseFloat(r.querySelector('.adj-value').value) || 0,
+    })).filter(a => a.value > 0);
+  }
+
+  function updateAdjBadge() {
+    const n = adjRows.querySelectorAll('.ocr-adj-row').length;
+    adjBadge.textContent = n ? `${n} applied` : 'none';
+    adjBadge.classList.toggle('has-adj', n > 0);
+  }
+
+  /* ── Recalculate adjusted prices + summary ────────────────────── */
+  function recalcSummary() {
+    const rows = Array.from(itemList.querySelectorAll('.ocr-item-row'));
+    let subtotal = 0;
+    const prices = rows.map(r => {
+      const v = parseFloat(r.querySelector('.ocr-price').value) || 0;
+      subtotal += v; return v;
+    });
+
+    const adjs = readAdjustments();
+    let totalTax = 0, totalDisc = 0;
+    adjs.forEach(a => {
+      const amt = a.mode === 'pct' ? subtotal * a.value / 100 : a.value;
+      if (a.type === 'tax')      totalTax  += amt;
+      if (a.type === 'discount') totalDisc += amt;
+    });
+    const adjustedTotal = Math.max(0, subtotal + totalTax - totalDisc);
+    const factor = subtotal > 0 ? adjustedTotal / subtotal : 1;
+    const hasAdj = Math.abs(factor - 1) > 0.0001;
+
+    /* Update per-row adjusted price tag */
+    rows.forEach((row, i) => {
+      const tag = row.querySelector('.ocr-item-adj-tag');
+      if (prices[i] > 0 && hasAdj) {
+        tag.textContent = `→ ${(prices[i] * factor).toFixed(2)}`;
+        tag.className = 'ocr-item-adj-tag show ' + (factor > 1 ? 'up' : 'down');
+      } else {
+        tag.textContent = ''; tag.className = 'ocr-item-adj-tag';
+      }
+    });
+
+    /* Summary panel */
+    adjSummary.style.display = hasAdj ? 'flex' : 'none';
+    adjSubtotal.textContent = subtotal.toFixed(2);
+    if (totalTax > 0) { adjTaxRow.style.display = 'flex'; adjTaxVal.textContent = '+' + totalTax.toFixed(2); }
+    else adjTaxRow.style.display = 'none';
+    if (totalDisc > 0) { adjDiscRow.style.display = 'flex'; adjDiscVal.textContent = '−' + totalDisc.toFixed(2); }
+    else adjDiscRow.style.display = 'none';
+    adjTotal.textContent = adjustedTotal.toFixed(2);
+
+    updateAdjBadge();
+    updateTotalBadge(adjustedTotal);
+  }
+
+  function updateTotalBadge(adjustedTotal) {
+    if (detectedTotal === null) {
+      totalCheck.textContent = 'No receipt total'; totalCheck.className = 'ocr-total-check no-total'; return;
+    }
+    const diff = Math.abs(adjustedTotal - detectedTotal);
+    if (diff < 0.05) {
+      totalCheck.textContent = '✓ Matches receipt total'; totalCheck.className = 'ocr-total-check match';
+    } else {
+      totalCheck.textContent = `⚠ Differs by ${diff.toFixed(2)}`; totalCheck.className = 'ocr-total-check mismatch';
+    }
+  }
+
+  /* ── Raw text toggle ──────────────────────────────────────────── */
+  // rawToggle replaced by always-visible editable textarea (ocrRawEditBox)
+
+  /* ── Import ───────────────────────────────────────────────────── */
+  importBtn.addEventListener('click', () => {
+    const app = window.splitBillPro;
+    if (!app) { showError('Cannot reach the main app. Please reload.'); return; }
+    const mainState = app.getState();
+    if (mainState.people.length < 2) {
+      showError('Add at least 2 participants in the main app first.'); return;
+    }
+    clearError();
+
+    // Compute adjustment factor
+    const rows = Array.from(itemList.querySelectorAll('.ocr-item-row'));
+    let subtotal = 0;
+    rows.forEach(r => subtotal += parseFloat(r.querySelector('.ocr-price').value) || 0);
+    const adjs = readAdjustments();
+    let totalTax = 0, totalDisc = 0;
+    adjs.forEach(a => {
+      const amt = a.mode === 'pct' ? subtotal * a.value / 100 : a.value;
+      if (a.type === 'tax')      totalTax  += amt;
+      if (a.type === 'discount') totalDisc += amt;
+    });
+    const adjustedGrandTotal = Math.max(0, subtotal + totalTax - totalDisc);
+    const factor = subtotal > 0 ? adjustedGrandTotal / subtotal : 1;
+
+    // Collect valid items with per-item adjusted prices and assigned people
+    const receiptItems = [];
+    let skipped = 0;
+    rows.forEach(row => {
+      const name      = row.querySelector('.ocr-name').value.trim();
+      const basePrice = parseFloat(row.querySelector('.ocr-price').value) || 0;
+      if (!name || basePrice <= 0) { skipped++; return; }
+      const finalPrice = Math.round(basePrice * factor * 100) / 100;
+      const activePids = Array.from(row.querySelectorAll('.ocr-avatar:not(.unassigned)'))
+                             .map(av => av.dataset.pid)
+                             .filter(id => mainState.people.find(p => p.id === id));
+      receiptItems.push({
+        name,
+        price: finalPrice,
+        participantIds: activePids.length ? activePids : mainState.people.map(p => p.id)
+      });
+    });
+
+    if (!receiptItems.length) { showError('Nothing to import — check item names and prices.'); return; }
+
+    // Union of all people who appear in any item
+    const allParticipantIds = [...new Set(receiptItems.flatMap(it => it.participantIds))];
+
+    // Build paidByMultiple: default first person covers all, user can edit later
+    const defaultPayer = mainState.people[0].id;
+    const grandTotal   = receiptItems.reduce((s, it) => s + it.price, 0);
+    const paidByMultiple = { [defaultPayer]: grandTotal };
+
+    const adjNote = Math.abs(factor - 1) > 0.0001
+      ? `receipt scan · adj ${factor > 1 ? '+' : ''}${((factor-1)*100).toFixed(1)}%`
+      : 'receipt scan';
+
+    // Read receipt image as dataURL so it can be displayed later
+    const doImport = (imageDataUrl) => {
+      try {
+        const s  = window.splitBillPro.getState();
+        const id = 'e_' + Math.random().toString(36).slice(2, 10);
+        s.expenses.unshift({
+          id,
+          title:              'Receipt',
+          amount:             grandTotal,
+          paidBy:             defaultPayer,
+          paidByMultiple,
+          participantIds:     allParticipantIds,
+          mode:               'equal',
+          shares:             {},
+          rounding:           'nearest',
+          category:           'food',
+          note:               adjNote,
+          receiptItems,
+          receiptImageDataUrl: imageDataUrl || ''
+        });
+        localStorage.setItem('splitBillPro_v2', JSON.stringify({
+          state: s, currencyCode: document.getElementById('currencySelect').value
+        }));
+        document.dispatchEvent(new CustomEvent('ocr:expense-added'));
+        closeModal(); resetState();
+        appToast(`Receipt imported as 1 expense · ${receiptItems.length} items${skipped ? ` (${skipped} skipped)` : ''} ✓`);
+      } catch (e) {
+        console.error('import error:', e);
+        showError('Import failed — see console.');
+      }
+    };
+
+    // Convert selected image to dataURL if available
+    if (selectedFile) {
+      const reader = new FileReader();
+      reader.onload = () => doImport(reader.result);
+      reader.onerror = () => doImport('');
+      reader.readAsDataURL(selectedFile);
+    } else {
+      doImport('');
+    }
+  });
+
+
+  /* ── Reset ────────────────────────────────────────────────────── */
+  function resetResults() {
+    resultsEl.classList.remove('visible'); footer.style.display = 'none';
+    itemList.innerHTML = ''; adjRows.innerHTML = '';
+    if (rawEditBox) rawEditBox.value = '';
+    if (rawEditSection) rawEditSection.style.display = 'none';
+    parsedItems = []; adjustments = []; detectedTotal = null;
+    totalCheck.textContent = 'No total detected'; totalCheck.className = 'ocr-total-check no-total';
+    detectedRow.style.display = 'none'; adjSummary.style.display = 'none';
+    adjBadge.textContent = 'none'; adjBadge.classList.remove('has-adj');
+    $('ocrAdjustments').classList.remove('open');
+    hideProgress(); clearError();
+  }
+  function resetState() {
+    resetResults(); selectedFile = null;
+    previewImg.src = ''; previewWrap.classList.remove('has-img');
+    fileInput.value = ''; scanBtn.disabled = true;
+  }
+
+  /* ── Event wiring ─────────────────────────────────────────────── */
+  closeBtn.addEventListener('click', closeModal);
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && overlay.classList.contains('open')) closeModal();
+  });
+  resetBtn.addEventListener('click', resetState);
+
+  /* ── Public API ───────────────────────────────────────────────── */
+  window.ScanReceiptOCR = { open: openModal, close: closeModal };
+})();
+</script>
+
+<script>
+(function () {
+  document.addEventListener('ocr:expense-added', () => {
+    if (window.splitBillPro && typeof window.splitBillPro.render === 'function') {
+      window.splitBillPro.render();
+    }
+  });
+})();
+</script>
+</body>
+</html>
